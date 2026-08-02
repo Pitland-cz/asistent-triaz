@@ -51,6 +51,9 @@
   .btn-ok:hover { background:var(--lime); color:#111; }
   .btn-no { background:rgba(224,108,90,.12); color:var(--red); width:38px; height:34px; font-size:15px; border:1px solid rgba(224,108,90,.3); }
   .btn-no:hover { background:var(--red); color:#fff; }
+  .btn-done { background:rgba(120,190,255,.12); color:#7bbcff; width:38px; height:34px; font-size:13px; border:1px solid rgba(120,190,255,.3); }
+  .btn-done:hover { background:#7bbcff; color:#111; }
+  .rt-done { color:#7bbcff; }
   .t-date { background:var(--bg); border:1px solid var(--border); color:var(--muted); border-radius:8px; padding:6px; font-size:12px; width:118px; }
   .task.done { opacity:.45; }
   .task.done .t-actions { display:none; }
@@ -62,6 +65,15 @@
   #toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--card2); border:1px solid var(--border); color:var(--text); padding:10px 18px; border-radius:10px; font-size:13px; opacity:0; transition:opacity .3s; pointer-events:none; }
   #toast.show { opacity:1; }
   .spin { text-align:center; color:var(--muted); padding:40px; }
+  .btn-edit { background:transparent; color:var(--muted); width:34px; height:34px; font-size:14px; border:1px solid var(--border); }
+  .btn-edit:hover { color:var(--text); border-color:var(--muted); }
+  .edit-form { margin-top:8px; display:flex; flex-direction:column; gap:8px; }
+  .edit-form input[type=text] { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:9px; font-size:13px; }
+  .edit-form input[type=text]:focus { outline:none; border-color:var(--lime); }
+  .edit-form label { font-size:11px; color:var(--muted); }
+  .edit-btns { display:flex; gap:8px; }
+  .btn-save { background:var(--lime); color:#111; padding:8px 16px; }
+  .btn-cancel { background:transparent; color:var(--muted); border:1px solid var(--border); padding:8px 16px; }
 </style>
 </head>
 <body>
@@ -75,13 +87,13 @@
 
 <div class="wrap" id="app" style="display:none">
   <h1><span class="dot"></span>Triáž úkolů</h1>
-  <p class="sub">Klikni ✓ schválit / ✗ zamítnout. Datum vlevo od ✓ nastaví termín. Bloky = jednání.</p>
+  <p class="sub">✓ schválit · ✓✓ hotovo (schválit a uzavřít) · ✗ zamítnout · ✎ upravit název/řešitele · datum nastaví termín.</p>
   <div class="toolbar">
     <div class="count">Čeká na tebe: <b id="cnt">–</b> úkolů</div>
     <button class="btn-ghost" onclick="load()">↻ Obnovit</button>
   </div>
   <div id="blocks"><div class="spin">Načítám…</div></div>
-  <div id="empty"><div class="big">🎉</div>Vše vyřízeno. Žadné úkoly nečekají na triáž.</div>
+  <div id="empty"><div class="big">🎉</div>Vše vyřízeno. Žádné úkoly nečekají na triáž.</div>
 </div>
 <div id="toast"></div>
 
@@ -145,9 +157,16 @@ function render() {
         </div>
         <div class="t-actions">
           <input type="date" class="t-date" id="d-${t.id}" value="${t.due_date||''}" title="Termín (nastaví se při schválení)">
+          <button class="btn-edit" title="Upravit název / řešitele" onclick="editTask('${t.id}')">✎</button>
           <button class="btn-ok" title="Schválit" onclick="act('${t.id}','schvaleny')">✓</button>
+          <button class="btn-done" title="Hotovo (schválit a rovnou uzavřít jako splněné)" onclick="act('${t.id}','hotovo')">✓✓</button>
           <button class="btn-no" title="Zamítnout" onclick="act('${t.id}','zamitnuty')">✗</button>
-        </div></div></div>`;
+        </div></div>
+        <div class="edit-form" id="ef-${t.id}" style="display:none">
+          <label>Název úkolu</label><input type="text" id="et-${t.id}">
+          <label>Řešitel (kdo to má udělat)</label><input type="text" id="eo-${t.id}">
+          <div class="edit-btns"><button class="btn-save" onclick="saveEdit('${t.id}')">Uložit</button><button class="btn-cancel" onclick="cancelEdit('${t.id}')">Zrušit</button></div>
+        </div></div>`;
     }
     html += '</div>';
   }
@@ -169,11 +188,12 @@ async function act(id, status, silent) {
     const res = await call(payload);
     if (res.error) throw new Error(res.error);
     el.classList.add('done');
-    document.getElementById('res-'+id).innerHTML = status === 'schvaleny'
-      ? '<span class="rt-ok">schváleno</span><button class="undo" onclick="undo(\''+id+'\')">zpět</button>'
-      : '<span class="rt-no">zamítnuto</span><button class="undo" onclick="undo(\''+id+'\')">zpět</button>';
+    const tag = status === 'schvaleny' ? '<span class="rt-ok">schváleno</span>'
+      : status === 'hotovo' ? '<span class="rt-done">hotovo</span>'
+      : '<span class="rt-no">zamítnuto</span>';
+    document.getElementById('res-'+id).innerHTML = tag + '<button class="undo" onclick="undo(\''+id+'\')">zpět</button>';
     updateCount();
-    if (!silent) toast(status === 'schvaleny' ? '✓ Schváleno' : '✗ Zamítnuto');
+    if (!silent) toast(status === 'schvaleny' ? '✓ Schváleno' : status === 'hotovo' ? '✓✓ Hotovo' : '✗ Zamítnuto');
   } catch(e) { toast('Chyba: ' + e.message); }
 }
 async function undo(id) {
@@ -190,6 +210,26 @@ async function approveBlock(k) {
   const ids = [...document.querySelectorAll(`[data-block="${k}"] .task:not(.done)`)].map(el => el.id.slice(2));
   for (const id of ids) await act(id, 'schvaleny', true);
   toast('✓ Blok schválen (' + ids.length + ' úkolů)');
+}
+function findTask(id){ return (DATA.tasks||[]).find(t => t.id === id); }
+function editTask(id) {
+  const t = findTask(id); if (!t) return;
+  document.getElementById('et-'+id).value = t.title || '';
+  document.getElementById('eo-'+id).value = t.owner || '';
+  document.getElementById('ef-'+id).style.display = 'flex';
+}
+function cancelEdit(id) { document.getElementById('ef-'+id).style.display = 'none'; }
+async function saveEdit(id) {
+  const t = findTask(id); if (!t) return;
+  const title = document.getElementById('et-'+id).value.trim();
+  const owner = document.getElementById('eo-'+id).value.trim();
+  if (!title) { toast('Název nesmí být prázdný'); return; }
+  try {
+    const res = await call({ action:'update', id, status: t.status || 'navrzeny', title, owner });
+    if (res.error) throw new Error(res.error);
+    t.title = title; t.owner = owner;
+    render(); toast('✎ Uloženo');
+  } catch(e) { toast('Chyba: ' + e.message); }
 }
 let toastT;
 function toast(msg) {
