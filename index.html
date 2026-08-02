@@ -56,6 +56,8 @@
   .rt-done { color:var(--blue); }
   .btn-edit { background:transparent; color:var(--muted); width:34px; height:34px; font-size:14px; border:1px solid var(--border); }
   .btn-edit:hover { color:var(--text); border-color:var(--muted); }
+  .btn-plan { background:transparent; color:var(--lime-ink); height:34px; padding:0 10px; font-size:13px; border:1px solid var(--lime-dim); white-space:nowrap; }
+  .btn-plan:hover { background:var(--lime); color:var(--text); }
   .task.done { opacity:.45; }
   .task.done .t-actions { display:none; }
   .result-tag { font-size:12px; font-weight:700; }
@@ -166,6 +168,7 @@ function taskRow(t, mode) {
   const openBtns = `
     <button class="btn-done" title="Hotovo" onclick="act('${t.id}','hotovo','${mode}')">✓✓</button>
     <button class="btn-no" title="Zrušit úkol" onclick="act('${t.id}','zamitnuty','${mode}')">✗</button>`;
+  const planBtn = (mode==='U' && !t.due_date) ? `<button class="btn-plan" title="Naplánovat termín" onclick="editTask('${t.id}','${mode}')">📅 Naplánovat</button>` : '';
   return `<div class="task" id="${mode}t-${t.id}">
     <div class="t-row"><div style="flex:1">
       <div class="t-title">${esc(t.title)}</div>
@@ -177,7 +180,7 @@ function taskRow(t, mode) {
       ${t.source_quote?`<div class="quote">„${esc(t.source_quote)}"</div>`:''}
     </div>
     <div class="t-actions">
-      <button class="btn-edit" title="Upravit (název, řešitel, termín, čas)" onclick="editTask('${t.id}','${mode}')">✎</button>
+      ${planBtn}<button class="btn-edit" title="Upravit (název, řešitel, termín, čas)" onclick="editTask('${t.id}','${mode}')">✎</button>
       ${mode==='T' ? triageBtns : openBtns}
     </div></div>
     <div class="edit-form" id="${mode}ef-${t.id}">
