@@ -3,16 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Triáž úkolů — Osobní asistent</title>
+<title>Úkoly — Osobní asistent</title>
 <style>
-  :root { --bg:#0d0f0d; --card:#161a16; --card2:#1d221d; --lime:#c8f04b; --lime-dim:#9dbf35; --text:#e8ece4; --muted:#9aa294; --red:#e06c5a; --border:#2a302a; }
+  :root { --bg:#f4f6f0; --card:#ffffff; --card2:#eef1e8; --lime:#c8f04b; --lime-dim:#b4dd39; --lime-ink:#55731a; --text:#22281f; --muted:#6d7565; --red:#c0442f; --blue:#1f6fbf; --border:#dde2d4; }
   * { box-sizing:border-box; margin:0; padding:0; }
   body { background:var(--bg); color:var(--text); font-family:-apple-system,'Segoe UI',Roboto,sans-serif; min-height:100vh; }
   .wrap { max-width:760px; margin:0 auto; padding:24px 16px 80px; }
   h1 { font-size:20px; display:flex; align-items:center; gap:10px; margin-bottom:4px; }
   h1 .dot { width:10px; height:10px; border-radius:50%; background:var(--lime); display:inline-block; }
-  .sub { color:var(--muted); font-size:13px; margin-bottom:20px; }
-  /* login */
+  .sub { color:var(--muted); font-size:12px; margin-bottom:14px; }
   #login { max-width:340px; margin:15vh auto; background:var(--card); border:1px solid var(--border); border-radius:14px; padding:28px; text-align:center; }
   #login input { width:100%; padding:12px; margin:14px 0; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:15px; text-align:center; }
   #login input:focus { outline:none; border-color:var(--lime); }
@@ -20,86 +19,100 @@
   .btn-lime { background:var(--lime); color:#111; padding:11px 20px; font-size:14px; }
   .btn-lime:hover { background:var(--lime-dim); }
   #loginErr { color:var(--red); font-size:13px; min-height:18px; margin-top:8px; }
-  /* toolbar */
-  .toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; gap:10px; }
+  .tabs { display:flex; gap:8px; margin-bottom:16px; }
+  .tab { background:var(--card); color:var(--muted); border:1px solid var(--border); padding:10px 18px; font-size:14px; border-radius:10px; }
+  .tab.active { background:var(--lime); color:#111; border-color:var(--lime); }
+  .toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:10px; }
   .count { font-size:13px; color:var(--muted); }
-  .count b { color:var(--lime); font-size:16px; }
+  .count b { color:var(--lime-ink); font-size:16px; }
   .btn-ghost { background:transparent; color:var(--muted); border:1px solid var(--border); padding:8px 14px; }
   .btn-ghost:hover { color:var(--text); border-color:var(--muted); }
-  /* block */
   .block { background:var(--card); border:1px solid var(--border); border-radius:14px; margin-bottom:18px; overflow:hidden; }
   .block-head { padding:14px 16px; display:flex; justify-content:space-between; align-items:center; gap:10px; border-bottom:1px solid var(--border); background:var(--card2); }
   .block-title { font-size:14px; font-weight:700; }
   .block-meta { font-size:12px; color:var(--muted); margin-top:2px; }
-  .btn-block { background:rgba(200,240,75,.12); color:var(--lime); padding:8px 12px; white-space:nowrap; border:1px solid rgba(200,240,75,.3); }
-  .btn-block:hover { background:rgba(200,240,75,.22); }
-  /* task */
+  .btn-block { background:rgba(190,230,80,.22); color:var(--lime-ink); padding:8px 12px; white-space:nowrap; border:1px solid rgba(120,160,30,.35); }
+  .btn-block:hover { background:rgba(190,230,80,.38); }
   .task { padding:13px 16px; border-bottom:1px solid var(--border); }
   .task:last-child { border-bottom:none; }
   .t-row { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
   .t-title { font-size:14px; line-height:1.45; }
   .t-meta { margin-top:5px; font-size:12px; color:var(--muted); display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
   .badge { padding:2px 8px; border-radius:20px; font-size:11px; font-weight:700; }
-  .b-jno { background:rgba(200,240,75,.15); color:var(--lime); }
-  .b-other { background:rgba(140,160,220,.15); color:#a9b8e8; }
-  .b-due { background:rgba(224,108,90,.15); color:var(--red); }
+  .b-jno { background:rgba(170,215,60,.22); color:var(--lime-ink); }
+  .b-other { background:rgba(60,100,190,.12); color:#2d5da8; }
+  .b-due { background:rgba(192,68,47,.12); color:var(--red); }
+  .b-cal { background:rgba(31,111,191,.10); color:var(--blue); }
   .quote { margin-top:6px; font-size:12px; color:var(--muted); font-style:italic; border-left:2px solid var(--border); padding-left:8px; display:none; }
   .task.open .quote { display:block; }
   .t-quote-toggle { background:none; color:var(--muted); font-size:11px; padding:2px 0; text-decoration:underline; }
-  .t-actions { display:flex; gap:6px; flex-shrink:0; align-items:center; }
-  .btn-ok { background:rgba(200,240,75,.14); color:var(--lime); width:38px; height:34px; font-size:16px; border:1px solid rgba(200,240,75,.3); }
+  .t-actions { display:flex; gap:6px; flex-shrink:0; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+  .btn-ok { background:rgba(190,230,80,.25); color:var(--lime-ink); width:38px; height:34px; font-size:16px; border:1px solid rgba(120,160,30,.35); }
   .btn-ok:hover { background:var(--lime); color:#111; }
-  .btn-no { background:rgba(224,108,90,.12); color:var(--red); width:38px; height:34px; font-size:15px; border:1px solid rgba(224,108,90,.3); }
+  .btn-no { background:rgba(192,68,47,.10); color:var(--red); width:38px; height:34px; font-size:15px; border:1px solid rgba(192,68,47,.3); }
   .btn-no:hover { background:var(--red); color:#fff; }
-  .btn-done { background:rgba(120,190,255,.12); color:#7bbcff; width:38px; height:34px; font-size:13px; border:1px solid rgba(120,190,255,.3); }
-  .btn-done:hover { background:#7bbcff; color:#111; }
-  .rt-done { color:#7bbcff; }
-  .t-date { background:var(--bg); border:1px solid var(--border); color:var(--muted); border-radius:8px; padding:6px; font-size:12px; width:118px; }
+  .btn-done { background:rgba(31,111,191,.10); color:var(--blue); width:38px; height:34px; font-size:13px; border:1px solid rgba(31,111,191,.3); }
+  .btn-done:hover { background:var(--blue); color:#fff; }
+  .rt-done { color:var(--blue); }
+  .btn-edit { background:transparent; color:var(--muted); width:34px; height:34px; font-size:14px; border:1px solid var(--border); }
+  .btn-edit:hover { color:var(--text); border-color:var(--muted); }
   .task.done { opacity:.45; }
   .task.done .t-actions { display:none; }
   .result-tag { font-size:12px; font-weight:700; }
-  .rt-ok { color:var(--lime); } .rt-no { color:var(--red); }
+  .rt-ok { color:var(--lime-ink); } .rt-no { color:var(--red); }
   .undo { background:none; color:var(--muted); text-decoration:underline; font-size:12px; margin-left:8px; }
-  #empty { text-align:center; padding:60px 20px; color:var(--muted); display:none; }
-  #empty .big { font-size:40px; margin-bottom:12px; }
-  #toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--card2); border:1px solid var(--border); color:var(--text); padding:10px 18px; border-radius:10px; font-size:13px; opacity:0; transition:opacity .3s; pointer-events:none; }
-  #toast.show { opacity:1; }
-  .spin { text-align:center; color:var(--muted); padding:40px; }
-  .btn-edit { background:transparent; color:var(--muted); width:34px; height:34px; font-size:14px; border:1px solid var(--border); }
-  .btn-edit:hover { color:var(--text); border-color:var(--muted); }
-  .edit-form { margin-top:8px; display:flex; flex-direction:column; gap:8px; }
-  .edit-form input[type=text] { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:9px; font-size:13px; }
-  .edit-form input[type=text]:focus { outline:none; border-color:var(--lime); }
+  .edit-form { margin-top:8px; display:none; flex-direction:column; gap:8px; }
+  .edit-form.show { display:flex; }
+  .edit-form input { background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:9px; font-size:13px; }
+  .edit-form input:focus { outline:none; border-color:var(--lime); }
   .edit-form label { font-size:11px; color:var(--muted); }
+  .edit-row2 { display:flex; gap:8px; }
   .edit-btns { display:flex; gap:8px; }
   .btn-save { background:var(--lime); color:#111; padding:8px 16px; }
   .btn-cancel { background:transparent; color:var(--muted); border:1px solid var(--border); padding:8px 16px; }
+  .sec-note { font-size:11px; color:var(--muted); padding:10px 16px; border-top:1px solid var(--border); }
+  #empty, #emptyU { text-align:center; padding:60px 20px; color:var(--muted); display:none; }
+  .big { font-size:40px; margin-bottom:12px; }
+  #toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--card2); border:1px solid var(--border); color:var(--text); padding:10px 18px; border-radius:10px; font-size:13px; opacity:0; transition:opacity .3s; pointer-events:none; z-index:9; }
+  #toast.show { opacity:1; }
+  .spin { text-align:center; color:var(--muted); padding:40px; }
 </style>
 </head>
 <body>
 <div id="login">
-  <h1 style="justify-content:center"><span class="dot"></span>Triáž úkolů</h1>
-  <p class="sub" style="margin-top:6px">Osobní asistent — schvalování navržených úkolů</p>
+  <h1 style="justify-content:center"><span class="dot"></span>Osobní asistent</h1>
+  <p class="sub" style="margin-top:6px">Triáž a úkoly</p>
   <input type="password" id="pw" placeholder="Heslo" onkeydown="if(event.key==='Enter')doLogin()">
   <button class="btn-lime" onclick="doLogin()">Vstoupit</button>
   <div id="loginErr"></div>
 </div>
 
 <div class="wrap" id="app" style="display:none">
-  <h1><span class="dot"></span>Triáž úkolů</h1>
-  <p class="sub">✓ schválit · ✓✓ hotovo (schválit a uzavřít) · ✗ zamítnout · ✎ upravit název/řešitele · datum nastaví termín.</p>
-  <div class="toolbar">
-    <div class="count">Čeká na tebe: <b id="cnt">–</b> úkolů</div>
-    <button class="btn-ghost" onclick="load()">↻ Obnovit</button>
+  <h1><span class="dot"></span>Osobní asistent</h1>
+  <div class="tabs">
+    <button class="tab active" id="tabT" onclick="showTab('T')">Triáž <span id="cntT"></span></button>
+    <button class="tab" id="tabU" onclick="showTab('U')">Úkoly <span id="cntU"></span></button>
   </div>
-  <div id="blocks"><div class="spin">Načítám…</div></div>
-  <div id="empty"><div class="big">🎉</div>Vše vyřízeno. Žádné úkoly nečekají na triáž.</div>
+
+  <div id="viewT">
+    <p class="sub">✓ schválit · ✓✓ hotovo · ✗ zamítnout · ✎ upravit. Datum+čas u schválení → propíše se do kalendáře.</p>
+    <div class="toolbar"><div class="count">K triáži: <b id="cnt">–</b></div><button class="btn-ghost" onclick="loadAll()">↻ Obnovit</button></div>
+    <div id="blocks"><div class="spin">Načítám…</div></div>
+    <div id="empty"><div class="big">🎉</div>Vše vyřízeno. Žádné úkoly nečekají na triáž.</div>
+  </div>
+
+  <div id="viewU" style="display:none">
+    <p class="sub">Tvoje otevřené úkoly + zadané ostatním. ✓✓ hotovo · ✎ upravit (i termín a čas). Termín s časem = event v kalendáři, jen datum = celodenní poznámka (zapíše nejbližší běh asistenta).</p>
+    <div class="toolbar"><div class="count">Otevřených: <b id="cntO">–</b></div><button class="btn-ghost" onclick="loadAll()">↻ Obnovit</button></div>
+    <div id="ublocks"><div class="spin">Načítám…</div></div>
+    <div id="emptyU"><div class="big">🏁</div>Žádné otevřené úkoly.</div>
+  </div>
 </div>
 <div id="toast"></div>
 
 <script>
 const EP = 'https://dltopsftcmkxqrcobgrc.supabase.co/functions/v1/asist-triaz';
-let ACCESS = null, DATA = null;
+let ACCESS = null, DATA = null, ODATA = null;
 
 async function call(payload) {
   const r = await fetch(EP, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ access: ACCESS, ...payload }) });
@@ -110,7 +123,7 @@ async function doLogin() {
   ACCESS = document.getElementById('pw').value.trim();
   document.getElementById('loginErr').textContent = '';
   try {
-    await load(true);
+    await loadAll(true);
     document.getElementById('login').style.display = 'none';
     document.getElementById('app').style.display = 'block';
   } catch(e) {
@@ -120,14 +133,66 @@ async function doLogin() {
 function esc(s){ return (s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function fmtDate(d){ if(!d) return null; const p=d.split('T')[0].split('-'); return p[2].replace(/^0/,'')+'. '+p[1].replace(/^0/,'')+'.'; }
 function isJNO(o){ return !o || /jno|jiří|jiri/i.test(o); }
+function todayISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 
-async function load(throwErr) {
-  const el = document.getElementById('blocks');
-  try { DATA = await call({ action:'list' }); }
-  catch(e){ if(throwErr) throw e; el.innerHTML = '<div class="spin">Chyba: '+esc(e.message)+'</div>'; return; }
-  render();
+function showTab(t) {
+  document.getElementById('tabT').classList.toggle('active', t==='T');
+  document.getElementById('tabU').classList.toggle('active', t==='U');
+  document.getElementById('viewT').style.display = t==='T' ? 'block' : 'none';
+  document.getElementById('viewU').style.display = t==='U' ? 'block' : 'none';
 }
-function render() {
+async function loadAll(throwErr) {
+  try {
+    [DATA, ODATA] = await Promise.all([call({action:'list'}), call({action:'list_open'})]);
+  } catch(e) {
+    if (throwErr) throw e;
+    toast('Chyba: ' + e.message); return;
+  }
+  renderT(); renderU();
+  document.getElementById('cntT').textContent = '(' + (DATA.tasks||[]).length + ')';
+  document.getElementById('cntU').textContent = '(' + (ODATA.tasks||[]).length + ')';
+}
+
+/* ---------- shared task row ---------- */
+function taskRow(t, mode) {
+  const jno = isJNO(t.owner);
+  const due = t.due_date ? `<span class="badge b-due">${fmtDate(t.due_date)}${t.due_time ? ' ' + esc(t.due_time) : ''}</span>` : '';
+  const cal = t.calendar_event_id ? '<span class="badge b-cal">📅 v kalendáři</span>' : '';
+  const proj = (p => p ? `<span class="badge b-other" style="opacity:.7">${esc(p.name)}</span>` : '')(((mode==='T'?DATA:ODATA).projects||[]).find(p => p.id === t.project_id));
+  const triageBtns = `
+    <button class="btn-ok" title="Schválit" onclick="act('${t.id}','schvaleny','${mode}')">✓</button>
+    <button class="btn-done" title="Hotovo (schválit a uzavřít)" onclick="act('${t.id}','hotovo','${mode}')">✓✓</button>
+    <button class="btn-no" title="Zamítnout" onclick="act('${t.id}','zamitnuty','${mode}')">✗</button>`;
+  const openBtns = `
+    <button class="btn-done" title="Hotovo" onclick="act('${t.id}','hotovo','${mode}')">✓✓</button>
+    <button class="btn-no" title="Zrušit úkol" onclick="act('${t.id}','zamitnuty','${mode}')">✗</button>`;
+  return `<div class="task" id="${mode}t-${t.id}">
+    <div class="t-row"><div style="flex:1">
+      <div class="t-title">${esc(t.title)}</div>
+      <div class="t-meta">
+        <span class="badge ${jno?'b-jno':'b-other'}">${jno?'👤 JNO':'👥 '+esc(t.owner)}</span>${due}${cal}${proj}
+        ${t.source_quote?`<button class="t-quote-toggle" onclick="document.getElementById('${mode}t-${t.id}').classList.toggle('open')">citace</button>`:''}
+        <span class="result-tag" id="${mode}res-${t.id}"></span>
+      </div>
+      ${t.source_quote?`<div class="quote">„${esc(t.source_quote)}"</div>`:''}
+    </div>
+    <div class="t-actions">
+      <button class="btn-edit" title="Upravit (název, řešitel, termín, čas)" onclick="editTask('${t.id}','${mode}')">✎</button>
+      ${mode==='T' ? triageBtns : openBtns}
+    </div></div>
+    <div class="edit-form" id="${mode}ef-${t.id}">
+      <label>Název úkolu</label><input type="text" id="${mode}et-${t.id}">
+      <label>Řešitel</label><input type="text" id="${mode}eo-${t.id}">
+      <div class="edit-row2">
+        <div style="flex:1"><label>Termín</label><br><input type="date" id="${mode}ed-${t.id}" style="width:100%"></div>
+        <div style="flex:1"><label>Čas (nepovinný)</label><br><input type="time" id="${mode}eh-${t.id}" style="width:100%"></div>
+      </div>
+      <div class="edit-btns"><button class="btn-save" onclick="saveEdit('${t.id}','${mode}')">Uložit</button><button class="btn-cancel" onclick="cancelEdit('${t.id}','${mode}')">Zrušit</button></div>
+    </div></div>`;
+}
+
+/* ---------- Triáž ---------- */
+function renderT() {
   const recs = {}; (DATA.recordings||[]).forEach(r => recs[r.recording_id] = r);
   const groups = {};
   (DATA.tasks||[]).forEach(t => { const k = t.source_recording_id || '_other'; (groups[k] = groups[k] || []).push(t); });
@@ -136,99 +201,110 @@ function render() {
   for (const k of keys) {
     const r = recs[k]; const ts = groups[k];
     const jnoCnt = ts.filter(t=>isJNO(t.owner)).length;
-    const title = r ? esc(r.title) : 'Ostatní / bez nahrávky';
     const L = String.fromCharCode(letter++);
     html += `<div class="block" data-block="${k}">
-      <div class="block-head"><div><div class="block-title">Blok ${L} — ${title}</div>
+      <div class="block-head"><div><div class="block-title">Blok ${L} — ${r ? esc(r.title) : 'Ostatní'}</div>
       <div class="block-meta">${ts.length} úkolů · ${jnoCnt}× 👤 JNO · ${ts.length-jnoCnt}× 👥 ostatní</div></div>
       <button class="btn-block" onclick="approveBlock('${k}')">✓ Schválit celý blok</button></div>`;
-    for (const t of ts) {
-      const jno = isJNO(t.owner);
-      const due = t.due_date ? `<span class="badge b-due">termín ${fmtDate(t.due_date)}</span>` : '';
-      html += `<div class="task" id="t-${t.id}">
-        <div class="t-row"><div style="flex:1">
-          <div class="t-title">${esc(t.title)}</div>
-          <div class="t-meta">
-            <span class="badge ${jno?'b-jno':'b-other'}">${jno?'👤 JNO':'👥 '+esc(t.owner)}</span>${due}
-            ${t.source_quote?`<button class="t-quote-toggle" onclick="document.getElementById('t-${t.id}').classList.toggle('open')">citace</button>`:''}
-            <span class="result-tag" id="res-${t.id}"></span>
-          </div>
-          ${t.source_quote?`<div class="quote">„${esc(t.source_quote)}"</div>`:''}
-        </div>
-        <div class="t-actions">
-          <input type="date" class="t-date" id="d-${t.id}" value="${t.due_date||''}" title="Termín (nastaví se při schválení)">
-          <button class="btn-edit" title="Upravit název / řešitele" onclick="editTask('${t.id}')">✎</button>
-          <button class="btn-ok" title="Schválit" onclick="act('${t.id}','schvaleny')">✓</button>
-          <button class="btn-done" title="Hotovo (schválit a rovnou uzavřít jako splněné)" onclick="act('${t.id}','hotovo')">✓✓</button>
-          <button class="btn-no" title="Zamítnout" onclick="act('${t.id}','zamitnuty')">✗</button>
-        </div></div>
-        <div class="edit-form" id="ef-${t.id}" style="display:none">
-          <label>Název úkolu</label><input type="text" id="et-${t.id}">
-          <label>Řešitel (kdo to má udělat)</label><input type="text" id="eo-${t.id}">
-          <div class="edit-btns"><button class="btn-save" onclick="saveEdit('${t.id}')">Uložit</button><button class="btn-cancel" onclick="cancelEdit('${t.id}')">Zrušit</button></div>
-        </div></div>`;
-    }
+    for (const t of ts) html += taskRow(t, 'T');
     html += '</div>';
   }
   document.getElementById('blocks').innerHTML = html;
   updateCount();
 }
 function updateCount() {
-  const n = document.querySelectorAll('.task:not(.done)').length;
+  const n = document.querySelectorAll('#blocks .task:not(.done)').length;
   document.getElementById('cnt').textContent = n;
   document.getElementById('empty').style.display = n === 0 ? 'block' : 'none';
   document.getElementById('blocks').style.display = n === 0 ? 'none' : 'block';
 }
-async function act(id, status, silent) {
-  const el = document.getElementById('t-'+id);
-  const dateVal = document.getElementById('d-'+id).value || undefined;
-  const payload = { action:'update', id, status };
-  if (status === 'schvaleny' && dateVal) payload.due_date = dateVal;
+
+/* ---------- Úkoly ---------- */
+function renderU() {
+  const ts = ODATA.tasks || [];
+  const today = todayISO();
+  const week = new Date(); week.setDate(week.getDate() + 7);
+  const weekISO = week.getFullYear()+'-'+String(week.getMonth()+1).padStart(2,'0')+'-'+String(week.getDate()).padStart(2,'0');
+  const mine = ts.filter(t => isJNO(t.owner) && t.status !== 'ceka_na_nekoho');
+  const waiting = ts.filter(t => !isJNO(t.owner) || t.status === 'ceka_na_nekoho');
+  const secs = [
+    { title: '🔴 Propadlé a dnes', items: mine.filter(t => t.due_date && t.due_date <= today), note: null },
+    { title: '📅 Tento týden', items: mine.filter(t => t.due_date && t.due_date > today && t.due_date <= weekISO), note: null },
+    { title: '🗓 Později', items: mine.filter(t => t.due_date && t.due_date > weekISO), note: null },
+    { title: '📥 TO DO — k naplánování (bez termínu)', items: mine.filter(t => !t.due_date), note: 'Přes ✎ přidej termín (a případně čas) — zapíše se do kalendáře.' },
+    { title: '👥 Čeká na ostatní', items: waiting, note: 'Úkoly zadané jiným + věci, na které čekáš. ✓✓ uzavře, ✎ upraví.' },
+  ];
+  let html = '';
+  for (const s of secs) {
+    if (!s.items.length) continue;
+    html += `<div class="block"><div class="block-head"><div><div class="block-title">${s.title}</div>
+      <div class="block-meta">${s.items.length} úkolů</div></div></div>`;
+    for (const t of s.items) html += taskRow(t, 'U');
+    if (s.note) html += `<div class="sec-note">${s.note}</div>`;
+    html += '</div>';
+  }
+  document.getElementById('ublocks').innerHTML = html;
+  const n = document.querySelectorAll('#ublocks .task:not(.done)').length;
+  document.getElementById('cntO').textContent = n;
+  document.getElementById('emptyU').style.display = n === 0 ? 'block' : 'none';
+  document.getElementById('ublocks').style.display = n === 0 ? 'none' : 'block';
+}
+
+/* ---------- actions ---------- */
+function findTask(id){ return [...(DATA&&DATA.tasks||[]), ...(ODATA&&ODATA.tasks||[])].find(t => t.id === id); }
+async function act(id, status, mode, silent) {
+  const el = document.getElementById(mode+'t-'+id);
   try {
-    const res = await call(payload);
+    const res = await call({ action:'update', id, status });
     if (res.error) throw new Error(res.error);
     el.classList.add('done');
     const tag = status === 'schvaleny' ? '<span class="rt-ok">schváleno</span>'
       : status === 'hotovo' ? '<span class="rt-done">hotovo</span>'
       : '<span class="rt-no">zamítnuto</span>';
-    document.getElementById('res-'+id).innerHTML = tag + '<button class="undo" onclick="undo(\''+id+'\')">zpět</button>';
-    updateCount();
+    document.getElementById(mode+'res-'+id).innerHTML = tag + '<button class="undo" onclick="undoAct(\''+id+'\',\''+mode+'\')">zpět</button>';
+    el.dataset.prev = findTask(id) ? findTask(id).status : 'schvaleny';
+    if (mode==='T') updateCount();
     if (!silent) toast(status === 'schvaleny' ? '✓ Schváleno' : status === 'hotovo' ? '✓✓ Hotovo' : '✗ Zamítnuto');
   } catch(e) { toast('Chyba: ' + e.message); }
 }
-async function undo(id) {
+async function undoAct(id, mode) {
+  const prev = mode==='T' ? 'navrzeny' : (document.getElementById(mode+'t-'+id).dataset.prev || 'schvaleny');
   try {
-    const res = await call({ action:'update', id, status:'navrzeny' });
+    const res = await call({ action:'update', id, status: prev });
     if (res.error) throw new Error(res.error);
-    const el = document.getElementById('t-'+id);
+    const el = document.getElementById(mode+'t-'+id);
     el.classList.remove('done');
-    document.getElementById('res-'+id).innerHTML = '';
-    updateCount(); toast('Vráceno k triáži');
+    document.getElementById(mode+'res-'+id).innerHTML = '';
+    if (mode==='T') updateCount();
+    toast('Vráceno');
   } catch(e) { toast('Chyba: ' + e.message); }
 }
 async function approveBlock(k) {
-  const ids = [...document.querySelectorAll(`[data-block="${k}"] .task:not(.done)`)].map(el => el.id.slice(2));
-  for (const id of ids) await act(id, 'schvaleny', true);
-  toast('✓ Blok schválen (' + ids.length + ' úkolů)');
+  const ids = [...document.querySelectorAll(`[data-block="${k}"] .task:not(.done)`)].map(el => el.id.slice(3));
+  for (const id of ids) await act(id, 'schvaleny', 'T', true);
+  toast('✓ Blok schválen (' + ids.length + ')');
 }
-function findTask(id){ return (DATA.tasks||[]).find(t => t.id === id); }
-function editTask(id) {
+function editTask(id, mode) {
   const t = findTask(id); if (!t) return;
-  document.getElementById('et-'+id).value = t.title || '';
-  document.getElementById('eo-'+id).value = t.owner || '';
-  document.getElementById('ef-'+id).style.display = 'flex';
+  document.getElementById(mode+'et-'+id).value = t.title || '';
+  document.getElementById(mode+'eo-'+id).value = t.owner || '';
+  document.getElementById(mode+'ed-'+id).value = t.due_date || '';
+  document.getElementById(mode+'eh-'+id).value = t.due_time || '';
+  document.getElementById(mode+'ef-'+id).classList.add('show');
 }
-function cancelEdit(id) { document.getElementById('ef-'+id).style.display = 'none'; }
-async function saveEdit(id) {
+function cancelEdit(id, mode) { document.getElementById(mode+'ef-'+id).classList.remove('show'); }
+async function saveEdit(id, mode) {
   const t = findTask(id); if (!t) return;
-  const title = document.getElementById('et-'+id).value.trim();
-  const owner = document.getElementById('eo-'+id).value.trim();
+  const title = document.getElementById(mode+'et-'+id).value.trim();
+  const owner = document.getElementById(mode+'eo-'+id).value.trim();
+  const due_date = document.getElementById(mode+'ed-'+id).value || null;
+  const due_time = document.getElementById(mode+'eh-'+id).value || null;
   if (!title) { toast('Název nesmí být prázdný'); return; }
   try {
-    const res = await call({ action:'update', id, status: t.status || 'navrzeny', title, owner });
+    const res = await call({ action:'update', id, status: t.status, title, owner, due_date, due_time });
     if (res.error) throw new Error(res.error);
-    t.title = title; t.owner = owner;
-    render(); toast('✎ Uloženo');
+    t.title = title; t.owner = owner; t.due_date = due_date; t.due_time = due_time;
+    renderT(); renderU(); toast('✎ Uloženo');
   } catch(e) { toast('Chyba: ' + e.message); }
 }
 let toastT;
