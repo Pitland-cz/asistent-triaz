@@ -109,6 +109,7 @@
     <div id="ublocks"><div class="spin">Načítám…</div></div>
     <div id="emptyU"><div class="big">🏁</div>Žádné otevřené úkoly.</div>
   </div>
+  <div style="text-align:center;margin-top:26px"><button class="undo" onclick="logout()">odhlásit se z tohoto zařízení</button></div>
 </div>
 <div id="toast"></div>
 
@@ -126,6 +127,7 @@ async function doLogin() {
   document.getElementById('loginErr').textContent = '';
   try {
     await loadAll(true);
+    try { localStorage.setItem('asistPw', ACCESS); } catch(_) {}
     document.getElementById('login').style.display = 'none';
     document.getElementById('app').style.display = 'block';
   } catch(e) {
@@ -316,6 +318,24 @@ function toast(msg) {
   t.textContent = msg; t.classList.add('show');
   clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2200);
 }
+function logout() {
+  try { localStorage.removeItem('asistPw'); } catch(_) {}
+  location.reload();
+}
+async function autoLogin() {
+  let saved = null; try { saved = localStorage.getItem('asistPw'); } catch(_) {}
+  if (!saved) return;
+  document.getElementById('pw').value = saved;
+  ACCESS = saved;
+  try {
+    await loadAll(true);
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+  } catch(e) {
+    if (e.message === 'unauthorized') { try { localStorage.removeItem('asistPw'); } catch(_) {} document.getElementById('pw').value = ''; }
+  }
+}
+autoLogin();
 </script>
 </body>
 </html>
