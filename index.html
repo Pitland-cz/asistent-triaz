@@ -269,13 +269,13 @@ function taskRow(t, mode) {
     <button class="btn-done" title="Hotovo" onclick="act('${t.id}','hotovo','${mode}')">✓✓</button>
     <button class="btn-no" title="Zrušit úkol" onclick="act('${t.id}','zamitnuty','${mode}')">✗</button>`;
   const planBtn = (mode==='U' && !t.due_date) ? `<button class="btn-plan" title="Naplánovat termín" onclick="editTask('${t.id}','${mode}')">📅 Naplánovat</button>` : '';
-  return `<div class="task" id="${mode}t-${t.id}">
+  return `<div class="task${t._acted?' done':''}" id="${mode}t-${t.id}"${t._prevStatus?` data-prev="${esc(t._prevStatus)}"`:''}>
     <div class="t-row"><div style="flex:1">
       <div class="t-title">${esc(t.title)}</div>
       <div class="t-meta">
         <span class="badge ${jno?'b-jno':'b-other'}">${jno?'👤 JNO':'👥 '+esc(t.owner)}</span>${due}${cal}${proj}
         ${t.source_quote?`<button class="t-quote-toggle" onclick="document.getElementById('${mode}t-${t.id}').classList.toggle('open')">citace</button>`:''}
-        <span class="result-tag" id="${mode}res-${t.id}"></span>
+        <span class="result-tag" id="${mode}res-${t.id}">${t._acted?resultTag(t._acted, t.id, mode):''}</span>
       </div>
       ${t.source_quote?`<div class="quote">„${esc(t.source_quote)}"</div>`:''}
     </div>
@@ -355,26 +355,33 @@ function renderU() {
 
 /* ---------- actions ---------- */
 function findTask(id){ return [...(DATA&&DATA.tasks||[]), ...(ODATA&&ODATA.tasks||[])].find(t => t.id === id); }
+function resultTag(status, id, mode) {
+  const tag = status === 'schvaleny' ? '<span class="rt-ok">schváleno</span>'
+    : status === 'hotovo' ? '<span class="rt-done">hotovo</span>'
+    : '<span class="rt-no">zamítnuto</span>';
+  return tag + '<button class="undo" onclick="undoAct(\''+id+'\',\''+mode+'\')">zpět</button>';
+}
 async function act(id, status, mode, silent) {
   const el = document.getElementById(mode+'t-'+id);
+  const t = findTask(id);
   try {
     const res = await call({ action:'update', id, status });
     if (res.error) throw new Error(res.error);
+    if (t) { if (!t._acted) t._prevStatus = t.status; t._acted = status; t.status = status; }
     el.classList.add('done');
-    const tag = status === 'schvaleny' ? '<span class="rt-ok">schváleno</span>'
-      : status === 'hotovo' ? '<span class="rt-done">hotovo</span>'
-      : '<span class="rt-no">zamítnuto</span>';
-    document.getElementById(mode+'res-'+id).innerHTML = tag + '<button class="undo" onclick="undoAct(\''+id+'\',\''+mode+'\')">zpět</button>';
-    el.dataset.prev = findTask(id) ? findTask(id).status : 'schvaleny';
+    document.getElementById(mode+'res-'+id).innerHTML = resultTag(status, id, mode);
+    el.dataset.prev = (t && t._prevStatus) || 'schvaleny';
     if (mode==='T') updateCount();
     if (!silent) toast(status === 'schvaleny' ? '✓ Schváleno' : status === 'hotovo' ? '✓✓ Hotovo' : '✗ Zamítnuto');
   } catch(e) { toast('Chyba: ' + e.message); }
 }
 async function undoAct(id, mode) {
-  const prev = mode==='T' ? 'navrzeny' : (document.getElementById(mode+'t-'+id).dataset.prev || 'schvaleny');
+  const t = findTask(id);
+  const prev = mode==='T' ? 'navrzeny' : ((t && t._prevStatus) || document.getElementById(mode+'t-'+id).dataset.prev || 'schvaleny');
   try {
     const res = await call({ action:'update', id, status: prev });
     if (res.error) throw new Error(res.error);
+    if (t) { t.status = prev; delete t._acted; delete t._prevStatus; }
     const el = document.getElementById(mode+'t-'+id);
     el.classList.remove('done');
     document.getElementById(mode+'res-'+id).innerHTML = '';
