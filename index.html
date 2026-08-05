@@ -67,6 +67,9 @@
   .edit-form.show { display:flex; }
   .edit-form input { background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:9px; font-size:13px; }
   .edit-form input:focus { outline:none; border-color:var(--lime); }
+  .edit-form textarea { background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:9px; font-size:13px; font-family:inherit; resize:vertical; }
+  .edit-form textarea:focus { outline:none; border-color:var(--lime); }
+  .pdesc { margin-top:6px; font-size:12px; color:var(--muted); line-height:1.5; }
   .edit-form label { font-size:11px; color:var(--muted); }
   .edit-row2 { display:flex; gap:8px; }
   .edit-btns { display:flex; gap:8px; }
@@ -94,6 +97,7 @@
   <div class="tabs">
     <button class="tab active" id="tabT" onclick="showTab('T')">Triáž <span id="cntT"></span></button>
     <button class="tab" id="tabU" onclick="showTab('U')">Úkoly <span id="cntU"></span></button>
+    <button class="tab" id="tabP" onclick="showTab('P')">Projekty <span id="cntP"></span></button>
   </div>
 
   <div id="viewT">
@@ -109,13 +113,19 @@
     <div id="ublocks"><div class="spin">Načítám…</div></div>
     <div id="emptyU"><div class="big">🏁</div>Žádné otevřené úkoly.</div>
   </div>
+
+  <div id="viewP" style="display:none">
+    <p class="sub">Návrhy projektů od asistenta ke schválení + aktivní projekty. ✎ upravit název, popis a zaměření. Do schváleného projektu asistent zařazuje nahrávky a úkoly.</p>
+    <div class="toolbar"><div class="count">Návrhů: <b id="cntPN">–</b></div><button class="btn-ghost" onclick="loadAll()">↻ Obnovit</button></div>
+    <div id="pblocks"><div class="spin">Načítám…</div></div>
+  </div>
   <div style="text-align:center;margin-top:26px"><button class="undo" onclick="logout()">odhlásit se z tohoto zařízení</button></div>
 </div>
 <div id="toast"></div>
 
 <script>
 const EP = 'https://dltopsftcmkxqrcobgrc.supabase.co/functions/v1/asist-triaz';
-let ACCESS = null, DATA = null, ODATA = null;
+let ACCESS = null, DATA = null, ODATA = null, PDATA = null;
 
 async function call(payload) {
   const r = await fetch(EP, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ access: ACCESS, ...payload }) });
@@ -140,21 +150,109 @@ function isJNO(o){ return !o || /jno|jiří|jiri/i.test(o); }
 function todayISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 
 function showTab(t) {
-  document.getElementById('tabT').classList.toggle('active', t==='T');
-  document.getElementById('tabU').classList.toggle('active', t==='U');
-  document.getElementById('viewT').style.display = t==='T' ? 'block' : 'none';
-  document.getElementById('viewU').style.display = t==='U' ? 'block' : 'none';
+  for (const x of ['T','U','P']) {
+    document.getElementById('tab'+x).classList.toggle('active', t===x);
+    document.getElementById('view'+x).style.display = t===x ? 'block' : 'none';
+  }
 }
 async function loadAll(throwErr) {
   try {
-    [DATA, ODATA] = await Promise.all([call({action:'list'}), call({action:'list_open'})]);
+    [DATA, ODATA, PDATA] = await Promise.all([call({action:'list'}), call({action:'list_open'}), call({action:'list_projects'})]);
   } catch(e) {
     if (throwErr) throw e;
     toast('Chyba: ' + e.message); return;
   }
-  renderT(); renderU();
+  renderT(); renderU(); renderP();
   document.getElementById('cntT').textContent = '(' + (DATA.tasks||[]).length + ')';
   document.getElementById('cntU').textContent = '(' + (ODATA.tasks||[]).length + ')';
+  const navr = (PDATA.projects||[]).filter(p => p.status === 'navrzeny').length;
+  document.getElementById('cntP').textContent = navr ? '(' + navr + ')' : '';
+}
+
+/* ---------- Projekty ---------- */
+function projRow(p) {
+  const c = (PDATA.counts || {})[p.id] || {};
+  const navrh = p.status === 'navrzeny';
+  const stav = navrh ? '<span class="badge b-due">návrh</span>'
+    : p.status === 'aktivni' ? '<span class="badge b-jno">aktivní</span>'
+    : '<span class="badge b-other">' + esc(p.status) + '</span>';
+  const stats = `<span>${c.recordings || 0} nahrávek</span><span>${c.tasks_open || 0} otevřených úkolů</span>`;
+  const btns = navrh
+    ? `<button class="btn-ok" title="Schválit projekt" onclick="actProj('${p.id}','aktivni')">✓</button>
+       <button class="btn-no" title="Zamítnout" onclick="actProj('${p.id}','zamitnuty')">✗</button>`
+    : `<button class="btn-no" title="Uzavřít projekt" onclick="actProj('${p.id}','uzavreny')">✗</button>`;
+  return `<div class="task" id="Pt-${p.id}">
+    <div class="t-row"><div style="flex:1">
+      <div class="t-title">${esc(p.name)}</div>
+      <div class="t-meta">${stav}${stats}<span class="result-tag" id="Pres-${p.id}"></span></div>
+      ${p.description ? `<div class="pdesc">${esc(p.description)}</div>` : ''}
+    </div>
+    <div class="t-actions">
+      <button class="btn-edit" title="Upravit název a popis" onclick="editProj('${p.id}')">✎</button>
+      ${btns}
+    </div></div>
+    <div class="edit-form" id="Pef-${p.id}">
+      <label>Název projektu</label><input type="text" id="Pen-${p.id}">
+      <label>Popis (k čemu projekt je, co do něj patří — podle tohohle asistent zařazuje nahrávky a úkoly)</label>
+      <textarea id="Ped-${p.id}" rows="4"></textarea>
+      <label>Zaměření (pitland / soukrome)</label><input type="text" id="Pes-${p.id}">
+      <div class="edit-btns"><button class="btn-save" onclick="saveProj('${p.id}')">Uložit</button><button class="btn-cancel" onclick="document.getElementById('Pef-${p.id}').classList.remove('show')">Zrušit</button></div>
+    </div></div>`;
+}
+function renderP() {
+  const all = PDATA.projects || [];
+  const navrhy = all.filter(p => p.status === 'navrzeny');
+  const aktivni = all.filter(p => p.status === 'aktivni');
+  const ostatni = all.filter(p => !['navrzeny','aktivni'].includes(p.status));
+  let html = '';
+  const sec = (title, note, items) => {
+    if (!items.length) return '';
+    let h = `<div class="block"><div class="block-head"><div><div class="block-title">${title}</div><div class="block-meta">${note}</div></div></div>`;
+    for (const p of items) h += projRow(p);
+    return h + '</div>';
+  };
+  html += sec('🆕 Návrhy ke schválení', 'Asistent je našel v nahrávkách. ✓ založí projekt, ✗ ho odmítne (už se nebude nabízet).', navrhy);
+  html += sec('📂 Aktivní projekty', 'Do těchto asistent zařazuje nové nahrávky a úkoly.', aktivni);
+  html += sec('🗄 Uzavřené a zamítnuté', 'Historie.', ostatni);
+  document.getElementById('pblocks').innerHTML = html || '<div class="spin">Zatím žádné projekty.</div>';
+  document.getElementById('cntPN').textContent = navrhy.length;
+}
+function findProj(id) { return (PDATA.projects || []).find(p => p.id === id); }
+function editProj(id) {
+  const p = findProj(id); if (!p) return;
+  document.getElementById('Pen-'+id).value = p.name || '';
+  document.getElementById('Ped-'+id).value = p.description || '';
+  document.getElementById('Pes-'+id).value = p.scope || '';
+  document.getElementById('Pef-'+id).classList.toggle('show');
+}
+async function saveProj(id) {
+  const p = findProj(id); if (!p) return;
+  const name = document.getElementById('Pen-'+id).value.trim();
+  const description = document.getElementById('Ped-'+id).value.trim();
+  const scope = document.getElementById('Pes-'+id).value.trim();
+  if (!name) { toast('Název nesmí být prázdný'); return; }
+  try {
+    const res = await call({ action:'update_project', id, name, description, scope });
+    if (res.error) throw new Error(res.error);
+    p.name = name; p.description = description; p.scope = scope;
+    document.getElementById('Pef-'+id).classList.remove('show');
+    renderP(); toast('✎ Uloženo');
+  } catch(e) { toast('Chyba: ' + e.message); }
+}
+async function actProj(id, status) {
+  const p = findProj(id); if (!p) return;
+  const prev = p.status;
+  try {
+    const res = await call({ action:'update_project', id, status });
+    if (res.error) throw new Error(res.error);
+    p.status = status;
+    renderP();
+    const el = document.getElementById('Pres-'+id);
+    if (el) el.innerHTML = (status==='aktivni' ? '<span class="rt-ok">✓ založeno</span>' : '<span class="rt-no">✗ '+(status==='zamitnuty'?'zamítnuto':'uzavřeno')+'</span>') +
+      '<button class="undo" onclick="actProj(\'' + id + '\',\'' + prev + '\')">zpět</button>';
+    const navr = (PDATA.projects||[]).filter(x => x.status === 'navrzeny').length;
+    document.getElementById('cntP').textContent = navr ? '(' + navr + ')' : '';
+  } catch(e) { toast('Chyba: ' + e.message); }
 }
 
 /* ---------- shared task row ---------- */
