@@ -70,6 +70,12 @@
   .edit-form textarea { background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:9px; font-size:13px; font-family:inherit; resize:vertical; }
   .edit-form textarea:focus { outline:none; border-color:var(--lime); }
   .pdesc { margin-top:6px; font-size:12px; color:var(--muted); line-height:1.5; }
+  .frow { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  .fchip { background:var(--card); color:var(--muted); border:1px solid var(--border); padding:7px 12px; font-size:13px; border-radius:20px; font-weight:600; }
+  .fchip b { color:var(--lime-ink); font-weight:700; margin-left:2px; }
+  .fchip.on { background:var(--lime); color:#111; border-color:var(--lime); }
+  .fchip.on b { color:#111; }
+  .fchip.f2 { font-size:12px; padding:6px 10px; }
   .edit-form label { font-size:11px; color:var(--muted); }
   .edit-row2 { display:flex; gap:8px; }
   .edit-btns { display:flex; gap:8px; }
@@ -108,8 +114,9 @@
   </div>
 
   <div id="viewU" style="display:none">
-    <p class="sub">Tvoje otevřené úkoly + zadané ostatním. ✓✓ hotovo · ✎ upravit (i termín a čas). Termín s časem = event v kalendáři, jen datum = celodenní poznámka (zapíše nejbližší běh asistenta).</p>
-    <div class="toolbar"><div class="count">Otevřených: <b id="cntO">–</b></div><button class="btn-ghost" onclick="loadAll()">↻ Obnovit</button></div>
+    <p class="sub">✓✓ hotovo · ✎ upravit (i termín a čas). Termín s časem = event v kalendáři, jen datum = celodenní poznámka (zapíše nejbližší běh asistenta).</p>
+    <div id="ufilters"></div>
+    <div class="toolbar"><div class="count">Zobrazeno: <b id="cntO">–</b></div><button class="btn-ghost" onclick="loadAll()">↻ Obnovit</button></div>
     <div id="ublocks"><div class="spin">Načítám…</div></div>
     <div id="emptyU"><div class="big">🏁</div>Žádné otevřené úkoly.</div>
   </div>
@@ -323,20 +330,72 @@ function updateCount() {
 }
 
 /* ---------- Úkoly ---------- */
+let UF = { owner: 'JNO', view: 'vse' };
+function ownerKey(t){ return isJNO(t.owner) ? 'JNO' : ((t.owner || '').trim() || '(nezadáno)'); }
+function setUFOwner(o){ UF.owner = (UF.owner === o ? null : o); renderU(); }
+function setUFView(v){ UF.view = v; renderU(); }
 function renderU() {
   const ts = ODATA.tasks || [];
   const today = todayISO();
   const week = new Date(); week.setDate(week.getDate() + 7);
   const weekISO = week.getFullYear()+'-'+String(week.getMonth()+1).padStart(2,'0')+'-'+String(week.getDate()).padStart(2,'0');
-  const mine = ts.filter(t => isJNO(t.owner) && t.status !== 'ceka_na_nekoho');
-  const waiting = ts.filter(t => !isJNO(t.owner) || t.status === 'ceka_na_nekoho');
-  const secs = [
-    { title: '🔴 Propadlé a dnes', items: mine.filter(t => t.due_date && t.due_date <= today), note: null },
-    { title: '📅 Tento týden', items: mine.filter(t => t.due_date && t.due_date > today && t.due_date <= weekISO), note: null },
-    { title: '🗓 Později', items: mine.filter(t => t.due_date && t.due_date > weekISO), note: null },
-    { title: '📥 TO DO — k naplánování (bez termínu)', items: mine.filter(t => !t.due_date), note: 'Přes ✎ přidej termín (a případně čas) — zapíše se do kalendáře.' },
-    { title: '👥 Čeká na ostatní', items: waiting, note: 'Úkoly zadané jiným + věci, na které čekáš. ✓✓ uzavře, ✎ upraví.' },
-  ];
+
+  /* --- rozdělovník řešitelů --- */
+  const byOwner = {};
+  for (const t of ts) { const k = ownerKey(t); (byOwner[k] = byOwner[k] || []).push(t); }
+  const owners = Object.keys(byOwner).sort((a,b) => a==='JNO' ? -1 : b==='JNO' ? 1 : byOwner[b].length - byOwner[a].length);
+  let rail = '<div class="frow">';
+  rail += `<button class="fchip${UF.owner===null?' on':''}" onclick="setUFOwner(null)">Všichni <b>${ts.length}</b></button>`;
+  for (const o of owners) rail += `<button class="fchip${UF.owner===o?' on':''}" onclick="setUFOwner('${esc(o).replace(/'/g,"\\'")}')">${o==='JNO'?'👤 JNO':esc(o)} <b>${byOwner[o].length}</b></button>`;
+  rail += '</div>';
+
+  /* --- výběr podle řešitele --- */
+  const sel = UF.owner === null ? ts : ts.filter(t => ownerKey(t) === UF.owner);
+
+  /* --- filtr stavu --- */
+  const cnt = {
+    vse: sel.length,
+    propadle: sel.filter(t => t.due_date && t.due_date < today).length,
+    dnes: sel.filter(t => t.due_date === today).length,
+    tyden: sel.filter(t => t.due_date && t.due_date > today && t.due_date <= weekISO).length,
+    todo: sel.filter(t => !t.due_date).length,
+  };
+  const V = [ ['vse','Vše'], ['propadle','🔴 Propadlé'], ['dnes','📆 Dnes'], ['tyden','📅 Týden'], ['todo','📥 TO DO'] ];
+  rail += '<div class="frow">';
+  for (const [k,l] of V) rail += `<button class="fchip f2${UF.view===k?' on':''}" onclick="setUFView('${k}')">${l} <b>${cnt[k]}</b></button>`;
+  rail += '</div>';
+  document.getElementById('ufilters').innerHTML = rail;
+
+  /* --- sekce --- */
+  let secs;
+  if (UF.view !== 'vse') {
+    const f = {
+      propadle: t => t.due_date && t.due_date < today,
+      dnes: t => t.due_date === today,
+      tyden: t => t.due_date && t.due_date > today && t.due_date <= weekISO,
+      todo: t => !t.due_date,
+    }[UF.view];
+    const titles = { propadle: '🔴 Propadlé', dnes: '📆 Dnes', tyden: '📅 Tento týden', todo: '📥 TO DO — bez termínu' };
+    secs = [{ title: titles[UF.view], items: sel.filter(f).sort((a,b) => (a.due_date||'9999').localeCompare(b.due_date||'9999')),
+      note: UF.view === 'todo' ? 'Přes ✎ nebo 📅 přidej termín — zapíše se do kalendáře.' : null }];
+  } else if (UF.owner !== null && UF.owner !== 'JNO') {
+    secs = [
+      { title: '🔴 Propadlé a dnes', items: sel.filter(t => t.due_date && t.due_date <= today), note: null },
+      { title: '📅 Tento týden', items: sel.filter(t => t.due_date && t.due_date > today && t.due_date <= weekISO), note: null },
+      { title: '🗓 Později', items: sel.filter(t => t.due_date && t.due_date > weekISO), note: null },
+      { title: '📥 Bez termínu', items: sel.filter(t => !t.due_date), note: null },
+    ];
+  } else {
+    const mine = sel.filter(t => isJNO(t.owner) && t.status !== 'ceka_na_nekoho');
+    const waiting = sel.filter(t => !isJNO(t.owner) || t.status === 'ceka_na_nekoho');
+    secs = [
+      { title: '🔴 Propadlé a dnes', items: mine.filter(t => t.due_date && t.due_date <= today), note: null },
+      { title: '📅 Tento týden', items: mine.filter(t => t.due_date && t.due_date > today && t.due_date <= weekISO), note: null },
+      { title: '🗓 Později', items: mine.filter(t => t.due_date && t.due_date > weekISO), note: null },
+      { title: '📥 TO DO — k naplánování (bez termínu)', items: mine.filter(t => !t.due_date), note: 'Přes ✎ přidej termín (a případně čas) — zapíše se do kalendáře.' },
+      { title: '👥 Čeká na ostatní', items: waiting, note: 'Úkoly zadané jiným + věci, na které čekáš. ✓✓ uzavře, ✎ upraví.' },
+    ];
+  }
   let html = '';
   for (const s of secs) {
     if (!s.items.length) continue;
