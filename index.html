@@ -440,12 +440,13 @@ function renderL() {
   const all = (LDATA && LDATA.events) || [];
   const cntB = {}, cntT = {};
   for (const e of all) { cntB[e.board]=(cntB[e.board]||0)+1; cntT[e.event_type]=(cntT[e.event_type]||0)+1; }
-  let leg = '';
+  let leg = `<button class="fchip${!LF.boards.length?' on':''}" onclick="LF.boards=[];renderL()">Vše <b>${all.length}</b></button>`;
   for (const k of ['PL','PROVOZ','DANNY']) {
     const on = !LF.boards.length || LF.boards.includes(k);
     leg += `<button class="fchip" style="background:${on?LBOARD[k].bg:'var(--card)'};color:${on?LBOARD[k].fg:'var(--muted)'};border:2px solid ${LF.boards.includes(k)?LBOARD[k].fg:'transparent'};opacity:${on?1:.55}" onclick="lfToggle('boards','${k}')">${LBOARD[k].name} <b style="color:inherit">${cntB[k]||0}</b></button>`;
   }
   leg += '</div><div class="frow">';
+  leg += `<button class="fchip f2${!LF.types.length?' on':''}" onclick="LF.types=[];renderL()">Vše <b>${all.length}</b></button>`;
   for (const k of ['nova','hotovo','presun','archiv']) {
     const sel = LF.types.includes(k);
     leg += `<button class="fchip f2${sel?' on':''}" onclick="lfToggle('types','${k}')">${LEV[k]} <b>${cntT[k]||0}</b></button>`;
