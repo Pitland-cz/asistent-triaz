@@ -428,15 +428,32 @@ const LBOARD = {
   DANNY:  { name:'Projekty - Danny',       bg:'rgba(192,122,47,.14)', fg:'#a5691f' },
 };
 const LEV = { nova:'🆕 nová', hotovo:'✅ hotovo', presun:'➡️ přesun', archiv:'🗄 archiv' };
+let LF = { boards: [], types: [] };   // prázdné pole = vše
+function lfToggle(kind, val) {
+  const a = LF[kind]; const i = a.indexOf(val);
+  if (i >= 0) a.splice(i, 1); else a.push(val);
+  renderL();
+}
 function fmtDayCZ(d){ const p=d.split('-'); const dt=new Date(d+'T12:00:00'); const dny=['neděle','pondělí','úterý','středa','čtvrtek','pátek','sobota'];
   return dny[dt.getDay()]+' '+p[2].replace(/^0/,'')+'. '+p[1].replace(/^0/,'')+'.'; }
 function renderL() {
-  const evs = (LDATA && LDATA.events) || [];
+  const all = (LDATA && LDATA.events) || [];
+  const cntB = {}, cntT = {};
+  for (const e of all) { cntB[e.board]=(cntB[e.board]||0)+1; cntT[e.event_type]=(cntT[e.event_type]||0)+1; }
   let leg = '';
-  for (const k of ['PL','PROVOZ','DANNY']) leg += `<span class="fchip" style="background:${LBOARD[k].bg};color:${LBOARD[k].fg};border-color:transparent;cursor:default">${LBOARD[k].name}</span>`;
+  for (const k of ['PL','PROVOZ','DANNY']) {
+    const on = !LF.boards.length || LF.boards.includes(k);
+    leg += `<button class="fchip" style="background:${on?LBOARD[k].bg:'var(--card)'};color:${on?LBOARD[k].fg:'var(--muted)'};border:2px solid ${LF.boards.includes(k)?LBOARD[k].fg:'transparent'};opacity:${on?1:.55}" onclick="lfToggle('boards','${k}')">${LBOARD[k].name} <b style="color:inherit">${cntB[k]||0}</b></button>`;
+  }
+  leg += '</div><div class="frow">';
+  for (const k of ['nova','hotovo','presun','archiv']) {
+    const sel = LF.types.includes(k);
+    leg += `<button class="fchip f2${sel?' on':''}" onclick="lfToggle('types','${k}')">${LEV[k]} <b>${cntT[k]||0}</b></button>`;
+  }
   document.getElementById('llegend').innerHTML = leg;
-  document.getElementById('cntLE').textContent = evs.length;
-  document.getElementById('cntL').textContent = evs.length ? '(' + evs.length + ')' : '';
+  const evs = all.filter(e => (!LF.boards.length || LF.boards.includes(e.board)) && (!LF.types.length || LF.types.includes(e.event_type)));
+  document.getElementById('cntLE').textContent = evs.length + (evs.length !== all.length ? ' / ' + all.length : '');
+  document.getElementById('cntL').textContent = all.length ? '(' + all.length + ')' : '';
   document.getElementById('emptyL').style.display = evs.length ? 'none' : 'block';
   if (!evs.length) { document.getElementById('lblocks').innerHTML = ''; return; }
   const byDay = {};
