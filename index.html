@@ -104,6 +104,7 @@
     <button class="tab active" id="tabT" onclick="showTab('T')">Triáž <span id="cntT"></span></button>
     <button class="tab" id="tabU" onclick="showTab('U')">Úkoly <span id="cntU"></span></button>
     <button class="tab" id="tabP" onclick="showTab('P')">Projekty <span id="cntP"></span></button>
+    <button class="tab" id="tabL" onclick="showTab('L')">Trello <span id="cntL"></span></button>
   </div>
 
   <div id="viewT">
@@ -126,13 +127,20 @@
     <div class="toolbar"><div class="count">Návrhů: <b id="cntPN">–</b></div><button class="btn-ghost" onclick="loadAll()">↻ Obnovit</button></div>
     <div id="pblocks"><div class="spin">Načítám…</div></div>
   </div>
+  <div id="viewL" style="display:none">
+    <p class="sub">Změny na nástěnkách za posledních 14 dní (aktualizace 2× denně — 8:00 a 18:00). Barva = nástěnka.</p>
+    <div class="frow" id="llegend"></div>
+    <div class="toolbar"><div class="count">Událostí: <b id="cntLE">–</b></div><button class="btn-ghost" onclick="loadAll()">↻ Obnovit</button></div>
+    <div id="lblocks"><div class="spin">Načítám…</div></div>
+    <div id="emptyL" style="text-align:center;padding:60px 20px;color:var(--muted);display:none"><div class="big">📋</div>Zatím žádné zaznamenané změny — evidence začala 17. 8. 2026.</div>
+  </div>
   <div style="text-align:center;margin-top:26px"><button class="undo" onclick="logout()">odhlásit se z tohoto zařízení</button></div>
 </div>
 <div id="toast"></div>
 
 <script>
 const EP = 'https://dltopsftcmkxqrcobgrc.supabase.co/functions/v1/asist-triaz';
-let ACCESS = null, DATA = null, ODATA = null, PDATA = null;
+let ACCESS = null, DATA = null, ODATA = null, PDATA = null, LDATA = null;
 
 async function call(payload) {
   const r = await fetch(EP, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ access: ACCESS, ...payload }) });
@@ -157,19 +165,19 @@ function isJNO(o){ return !o || /jno|jiří|jiri/i.test(o); }
 function todayISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 
 function showTab(t) {
-  for (const x of ['T','U','P']) {
+  for (const x of ['T','U','P','L']) {
     document.getElementById('tab'+x).classList.toggle('active', t===x);
     document.getElementById('view'+x).style.display = t===x ? 'block' : 'none';
   }
 }
 async function loadAll(throwErr) {
   try {
-    [DATA, ODATA, PDATA] = await Promise.all([call({action:'list'}), call({action:'list_open'}), call({action:'list_projects'})]);
+    [DATA, ODATA, PDATA, LDATA] = await Promise.all([call({action:'list'}), call({action:'list_open'}), call({action:'list_projects'}), call({action:'list_trello'}).catch(()=>({events:[]}))]);
   } catch(e) {
     if (throwErr) throw e;
     toast('Chyba: ' + e.message); return;
   }
-  renderT(); renderU(); renderP();
+  renderT(); renderU(); renderP(); renderL();
   document.getElementById('cntT').textContent = '(' + (DATA.tasks||[]).length + ')';
   document.getElementById('cntU').textContent = '(' + (ODATA.tasks||[]).length + ')';
   const navr = (PDATA.projects||[]).filter(p => p.status === 'navrzeny').length;
@@ -410,6 +418,46 @@ function renderU() {
   document.getElementById('cntO').textContent = n;
   document.getElementById('emptyU').style.display = n === 0 ? 'block' : 'none';
   document.getElementById('ublocks').style.display = n === 0 ? 'none' : 'block';
+}
+
+/* ---------- Trello ---------- */
+const LBOARD = {
+  PL:     { name:'TO DO - Pitland Leader', bg:'rgba(123,94,167,.14)', fg:'#6a4d99' },
+  PROVOZ: { name:'Pitland PROVOZ',         bg:'rgba(31,111,191,.12)', fg:'#1f6fbf' },
+  DANNY:  { name:'Projekty - Danny',       bg:'rgba(192,122,47,.14)', fg:'#a5691f' },
+};
+const LEV = { nova:'🆕 nová', hotovo:'✅ hotovo', presun:'➡️ přesun', archiv:'🗄 archiv' };
+function fmtDayCZ(d){ const p=d.split('-'); const dt=new Date(d+'T12:00:00'); const dny=['neděle','pondělí','úterý','středa','čtvrtek','pátek','sobota'];
+  return dny[dt.getDay()]+' '+p[2].replace(/^0/,'')+'. '+p[1].replace(/^0/,'')+'.'; }
+function renderL() {
+  const evs = (LDATA && LDATA.events) || [];
+  let leg = '';
+  for (const k of ['PL','PROVOZ','DANNY']) leg += `<span class="fchip" style="background:${LBOARD[k].bg};color:${LBOARD[k].fg};border-color:transparent;cursor:default">${LBOARD[k].name}</span>`;
+  document.getElementById('llegend').innerHTML = leg;
+  document.getElementById('cntLE').textContent = evs.length;
+  document.getElementById('cntL').textContent = evs.length ? '(' + evs.length + ')' : '';
+  document.getElementById('emptyL').style.display = evs.length ? 'none' : 'block';
+  if (!evs.length) { document.getElementById('lblocks').innerHTML = ''; return; }
+  const byDay = {};
+  for (const e of evs) (byDay[e.day] = byDay[e.day] || []).push(e);
+  let html = '';
+  for (const day of Object.keys(byDay).sort().reverse()) {
+    const items = byDay[day];
+    const perBoard = {};
+    for (const e of items) perBoard[e.board] = (perBoard[e.board]||0)+1;
+    const meta = Object.keys(perBoard).map(b => `${(LBOARD[b]||{name:b}).name}: ${perBoard[b]}`).join(' · ');
+    html += `<div class="block"><div class="block-head"><div><div class="block-title">📆 ${fmtDayCZ(day)}</div><div class="block-meta">${items.length} změn · ${meta}</div></div></div>`;
+    for (const e of items) {
+      const B = LBOARD[e.board] || { name:e.board, bg:'var(--card2)', fg:'var(--muted)' };
+      html += `<div class="task"><div class="t-row"><div style="flex:1">
+        <div class="t-title">${esc(e.card_name || e.card_id)}</div>
+        <div class="t-meta"><span class="badge" style="background:${B.bg};color:${B.fg}">${B.name}</span>
+        <span>${LEV[e.event_type] || esc(e.event_type)}</span>${e.detail ? '<span>' + esc(e.detail) + '</span>' : ''}</div>
+      </div></div></div>`;
+    }
+    html += '</div>';
+  }
+  document.getElementById('lblocks').innerHTML = html;
 }
 
 /* ---------- actions ---------- */
