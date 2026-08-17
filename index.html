@@ -455,13 +455,18 @@ function renderL() {
   const evs = all.filter(e => (!LF.boards.length || LF.boards.includes(e.board)) && (!LF.types.length || LF.types.includes(e.event_type)));
   document.getElementById('cntLE').textContent = evs.length + (evs.length !== all.length ? ' / ' + all.length : '');
   document.getElementById('cntL').textContent = all.length ? '(' + all.length + ')' : '';
-  document.getElementById('emptyL').style.display = evs.length ? 'none' : 'block';
-  if (!evs.length) { document.getElementById('lblocks').innerHTML = ''; return; }
+  document.getElementById('emptyL').style.display = 'none';
   const byDay = {};
   for (const e of evs) (byDay[e.day] = byDay[e.day] || []).push(e);
+  const days = [];
+  for (let i = 0; i < 14; i++) { const d = new Date(Date.now() - i*86400000); days.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')); }
   let html = '';
-  for (const day of Object.keys(byDay).sort().reverse()) {
-    const items = byDay[day];
+  for (const day of days) {
+    const items = byDay[day] || [];
+    if (!items.length) {
+      html += `<div class="block" style="opacity:.55"><div class="block-head" style="border-bottom:none"><div><div class="block-title">📆 ${fmtDayCZ(day)}</div><div class="block-meta">0 změn</div></div></div></div>`;
+      continue;
+    }
     const perBoard = {};
     for (const e of items) perBoard[e.board] = (perBoard[e.board]||0)+1;
     const meta = Object.keys(perBoard).map(b => `${(LBOARD[b]||{name:b}).name}: ${perBoard[b]}`).join(' · ');
