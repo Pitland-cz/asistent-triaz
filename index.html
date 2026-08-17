@@ -275,6 +275,7 @@ function taskRow(t, mode) {
   const jno = isJNO(t.owner);
   const due = t.due_date ? `<span class="badge b-due">${fmtDate(t.due_date)}${t.due_time ? ' ' + esc(t.due_time) : ''}</span>` : '';
   const cal = t.calendar_event_id ? '<span class="badge b-cal">📅 v kalendáři</span>' : '';
+  const tdone = t.trello_done_at ? '<span class="badge" style="background:rgba(123,94,167,.16);color:#6a4d99">✅ hotovo v Trellu</span>' : '';
   const proj = (p => p ? `<span class="badge b-other" style="opacity:.7">${esc(p.name)}</span>` : '')(((mode==='T'?DATA:ODATA).projects||[]).find(p => p.id === t.project_id));
   const triageBtns = `
     <button class="btn-ok" title="Schválit" onclick="act('${t.id}','schvaleny','${mode}')">✓</button>
@@ -288,7 +289,7 @@ function taskRow(t, mode) {
     <div class="t-row"><div style="flex:1">
       <div class="t-title">${esc(t.title)}</div>
       <div class="t-meta">
-        <span class="badge ${jno?'b-jno':'b-other'}">${jno?'👤 JNO':'👥 '+esc(t.owner)}</span>${due}${cal}${proj}
+        <span class="badge ${jno?'b-jno':'b-other'}">${jno?'👤 JNO':'👥 '+esc(t.owner)}</span>${due}${cal}${tdone}${proj}
         ${t.source_quote?`<button class="t-quote-toggle" onclick="document.getElementById('${mode}t-${t.id}').classList.toggle('open')">citace</button>`:''}
         <span class="result-tag" id="${mode}res-${t.id}">${t._acted?resultTag(t._acted, t.id, mode):''}</span>
       </div>
