@@ -274,6 +274,7 @@ async function actProj(id, status) {
 function taskRow(t, mode) {
   const jno = isJNO(t.owner);
   const due = t.due_date ? `<span class="badge b-due">${fmtDate(t.due_date)}${t.due_time ? ' ' + esc(t.due_time) : ''}</span>` : '';
+  const dur = `<span class="badge" style="background:rgba(109,117,101,.12);color:var(--muted)">⏱ ${t.duration_min || 30} min</span>`;
   const cal = t.calendar_event_id ? '<span class="badge b-cal">📅 v kalendáři</span>' : '';
   const tdone = t.trello_done_at ? '<span class="badge" style="background:rgba(123,94,167,.16);color:#6a4d99">✅ hotovo v Trellu</span>' : '';
   const proj = (p => p ? `<span class="badge b-other" style="opacity:.7">${esc(p.name)}</span>` : '')(((mode==='T'?DATA:ODATA).projects||[]).find(p => p.id === t.project_id));
@@ -289,7 +290,7 @@ function taskRow(t, mode) {
     <div class="t-row"><div style="flex:1">
       <div class="t-title">${esc(t.title)}</div>
       <div class="t-meta">
-        <span class="badge ${jno?'b-jno':'b-other'}">${jno?'👤 JNO':'👥 '+esc(t.owner)}</span>${due}${cal}${tdone}${proj}
+        <span class="badge ${jno?'b-jno':'b-other'}">${jno?'👤 JNO':'👥 '+esc(t.owner)}</span>${due}${dur}${cal}${tdone}${proj}
         ${t.source_quote?`<button class="t-quote-toggle" onclick="document.getElementById('${mode}t-${t.id}').classList.toggle('open')">citace</button>`:''}
         <span class="result-tag" id="${mode}res-${t.id}">${t._acted?resultTag(t._acted, t.id, mode):''}</span>
       </div>
@@ -305,6 +306,9 @@ function taskRow(t, mode) {
       <div class="edit-row2">
         <div style="flex:1"><label>Termín</label><br><input type="date" id="${mode}ed-${t.id}" style="width:100%"></div>
         <div style="flex:1"><label>Čas (nepovinný)</label><br><input type="time" id="${mode}eh-${t.id}" style="width:100%"></div>
+        <div style="flex:1"><label>Doba trvání</label><br><select id="${mode}em-${t.id}" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px;font-size:13px">
+          <option value="15">15 min</option><option value="30">30 min</option><option value="45">45 min</option><option value="60">1 h</option><option value="90">1,5 h</option><option value="120">2 h</option><option value="180">3 h</option><option value="240">4 h</option>
+        </select></div>
       </div>
       <div class="edit-btns"><button class="btn-save" onclick="saveEdit('${t.id}','${mode}')">Uložit</button><button class="btn-cancel" onclick="cancelEdit('${t.id}','${mode}')">Zrušit</button></div>
     </div></div>`;
@@ -531,6 +535,7 @@ function editTask(id, mode) {
   document.getElementById(mode+'eo-'+id).value = t.owner || '';
   document.getElementById(mode+'ed-'+id).value = t.due_date || '';
   document.getElementById(mode+'eh-'+id).value = t.due_time || '';
+  document.getElementById(mode+'em-'+id).value = String(t.duration_min || 30);
   document.getElementById(mode+'ef-'+id).classList.add('show');
 }
 function cancelEdit(id, mode) { document.getElementById(mode+'ef-'+id).classList.remove('show'); }
@@ -540,11 +545,12 @@ async function saveEdit(id, mode) {
   const owner = document.getElementById(mode+'eo-'+id).value.trim();
   const due_date = document.getElementById(mode+'ed-'+id).value || null;
   const due_time = document.getElementById(mode+'eh-'+id).value || null;
+  const duration_min = parseInt(document.getElementById(mode+'em-'+id).value) || 30;
   if (!title) { toast('Název nesmí být prázdný'); return; }
   try {
-    const res = await call({ action:'update', id, status: t.status, title, owner, due_date, due_time });
+    const res = await call({ action:'update', id, status: t.status, title, owner, due_date, due_time, duration_min });
     if (res.error) throw new Error(res.error);
-    t.title = title; t.owner = owner; t.due_date = due_date; t.due_time = due_time;
+    t.title = title; t.owner = owner; t.due_date = due_date; t.due_time = due_time; t.duration_min = duration_min;
     renderT(); renderU(); toast('✎ Uloženo');
   } catch(e) { toast('Chyba: ' + e.message); }
 }
