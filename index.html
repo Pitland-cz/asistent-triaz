@@ -22,6 +22,15 @@
   .tabs { display:flex; gap:8px; margin-bottom:16px; }
   .tab { background:var(--card); color:var(--muted); border:1px solid var(--border); padding:10px 18px; font-size:14px; border-radius:10px; }
   .tab.active { background:var(--lime); color:#111; border-color:var(--lime); }
+  .brief { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px 24px; line-height:1.55; font-size:15px; }
+  .brief h2 { font-size:19px; margin:0 0 10px; }
+  .brief h3 { font-size:15px; margin:20px 0 8px; padding-bottom:5px; border-bottom:1px solid var(--border); }
+  .brief h4 { font-size:14px; margin:14px 0 5px; }
+  .brief ul { margin:4px 0 10px; padding-left:22px; }
+  .brief li { margin:3px 0; }
+  .brief p { margin:6px 0; }
+  .brief hr { border:none; border-top:1px solid var(--border); margin:14px 0; }
+  .brief code { background:rgba(128,128,128,.15); padding:1px 5px; border-radius:5px; font-size:13px; }
   .toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:10px; }
   .count { font-size:13px; color:var(--muted); }
   .count b { color:var(--lime-ink); font-size:16px; }
@@ -101,10 +110,18 @@
 <div class="wrap" id="app" style="display:none">
   <h1><span class="dot"></span>Osobní asistent</h1>
   <div class="tabs">
+    <button class="tab" id="tabD" onclick="showTab('D')">☀️ Dnešek</button>
     <button class="tab active" id="tabT" onclick="showTab('T')">Triáž <span id="cntT"></span></button>
     <button class="tab" id="tabU" onclick="showTab('U')">Úkoly <span id="cntU"></span></button>
     <button class="tab" id="tabP" onclick="showTab('P')">Projekty <span id="cntP"></span></button>
     <button class="tab" id="tabL" onclick="showTab('L')">Trello <span id="cntL"></span></button>
+  </div>
+
+  <div id="viewD" style="display:none">
+    <p class="sub" id="dmeta">Ranní příprava na den — generuje se každý den v 8:00.</p>
+    <div class="toolbar"><div class="count" id="dtitle"></div><button class="btn-ghost" onclick="loadAll()">↻ Obnovit</button></div>
+    <div id="dbrief" class="brief"><div class="spin">Načítám…</div></div>
+    <div id="emptyD" style="text-align:center;padding:60px 20px;color:var(--muted);display:none"><div class="big">🌙</div>Dnešní příprava ještě nevznikla — generuje se v 8:00.</div>
   </div>
 
   <div id="viewT">
@@ -140,7 +157,7 @@
 
 <script>
 const EP = 'https://dltopsftcmkxqrcobgrc.supabase.co/functions/v1/asist-triaz';
-let ACCESS = null, DATA = null, ODATA = null, PDATA = null, LDATA = null;
+let ACCESS = null, DATA = null, ODATA = null, PDATA = null, LDATA = null, BDATA = null, firstLoad = true;
 
 async function call(payload) {
   const r = await fetch(EP, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ access: ACCESS, ...payload }) });
@@ -165,23 +182,56 @@ function isJNO(o){ return !o || /jno|jiří|jiri/i.test(o); }
 function todayISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 
 function showTab(t) {
-  for (const x of ['T','U','P','L']) {
+  for (const x of ['D','T','U','P','L']) {
     document.getElementById('tab'+x).classList.toggle('active', t===x);
     document.getElementById('view'+x).style.display = t===x ? 'block' : 'none';
   }
 }
 async function loadAll(throwErr) {
   try {
-    [DATA, ODATA, PDATA, LDATA] = await Promise.all([call({action:'list'}), call({action:'list_open'}), call({action:'list_projects'}), call({action:'list_trello'}).catch(()=>({events:[]}))]);
+    [DATA, ODATA, PDATA, LDATA, BDATA] = await Promise.all([call({action:'list'}), call({action:'list_open'}), call({action:'list_projects'}), call({action:'list_trello'}).catch(()=>({events:[]})), call({action:'get_brief'}).catch(()=>({brief:null}))]);
   } catch(e) {
     if (throwErr) throw e;
     toast('Chyba: ' + e.message); return;
   }
-  renderT(); renderU(); renderP(); renderL();
+  renderT(); renderU(); renderP(); renderL(); renderD();
+  if (firstLoad) { firstLoad = false; if (BDATA && BDATA.brief && BDATA.brief.brief_date === todayISO()) showTab('D'); }
   document.getElementById('cntT').textContent = '(' + (DATA.tasks||[]).length + ')';
   document.getElementById('cntU').textContent = '(' + (ODATA.tasks||[]).length + ')';
   const navr = (PDATA.projects||[]).filter(p => p.status === 'navrzeny').length;
   document.getElementById('cntP').textContent = navr ? '(' + navr + ')' : '';
+}
+
+/* ---------- Dnešek ---------- */
+function mdToHtml(md) {
+  const lines = (md||'').split('\n'); let out = [], inList = false;
+  const inline = s => esc(s)
+    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+    .replace(/\*(.+?)\*/g, '<i>$1</i>')
+    .replace(/`(.+?)`/g, '<code>$1</code>');
+  for (let ln of lines) {
+    const t = ln.trim();
+    const isLi = /^[-*] /.test(t);
+    if (inList && !isLi) { out.push('</ul>'); inList = false; }
+    if (!t) continue;
+    if (/^### /.test(t)) out.push('<h4>'+inline(t.slice(4))+'</h4>');
+    else if (/^## /.test(t)) out.push('<h3>'+inline(t.slice(3))+'</h3>');
+    else if (/^# /.test(t)) out.push('<h2>'+inline(t.slice(2))+'</h2>');
+    else if (/^---+$/.test(t)) out.push('<hr>');
+    else if (isLi) { if (!inList) { out.push('<ul>'); inList = true; } out.push('<li>'+inline(t.replace(/^[-*] /,''))+'</li>'); }
+    else out.push('<p>'+inline(t)+'</p>');
+  }
+  if (inList) out.push('</ul>');
+  return out.join('\n');
+}
+function renderD() {
+  const box = document.getElementById('dbrief'), emp = document.getElementById('emptyD');
+  const b = BDATA && BDATA.brief;
+  if (!b) { box.style.display='none'; emp.style.display='block'; document.getElementById('dtitle').textContent=''; return; }
+  emp.style.display = 'none'; box.style.display = 'block';
+  const stale = b.brief_date !== todayISO();
+  document.getElementById('dtitle').innerHTML = (stale ? '⚠️ Poslední příprava: <b>'+esc(fmtDate(b.brief_date))+'</b> (dnešní ještě nevznikla)' : 'Připraveno v ' + esc((b.created_at||'').slice(11,16)) + ' UTC');
+  box.innerHTML = mdToHtml(b.content_md);
 }
 
 /* ---------- Projekty ---------- */
