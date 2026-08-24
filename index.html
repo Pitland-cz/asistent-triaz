@@ -406,14 +406,21 @@ function renderU() {
   /* --- rozdělovník řešitelů --- */
   const byOwner = {};
   for (const t of ts) { const k = ownerKey(t); (byOwner[k] = byOwner[k] || []).push(t); }
-  const owners = Object.keys(byOwner).sort((a,b) => a==='JNO' ? -1 : b==='JNO' ? 1 : byOwner[b].length - byOwner[a].length);
+  /* řešitelé s jediným úkolem (mimo JNO) → společná skupina „Ostatní" */
+  const singles = new Set(Object.keys(byOwner).filter(k => k !== 'JNO' && byOwner[k].length === 1));
+  if (singles.size > 1) {
+    byOwner['Ostatní'] = [];
+    for (const k of singles) { byOwner['Ostatní'].push(...byOwner[k]); delete byOwner[k]; }
+  }
+  const groupKey = t => { const k = ownerKey(t); return (singles.size > 1 && singles.has(k)) ? 'Ostatní' : k; };
+  const owners = Object.keys(byOwner).sort((a,b) => a==='JNO' ? -1 : b==='JNO' ? 1 : a==='Ostatní' ? 1 : b==='Ostatní' ? -1 : byOwner[b].length - byOwner[a].length);
   let rail = '<div class="frow">';
   rail += `<button class="fchip${UF.owner===null?' on':''}" onclick="setUFOwner(null)">Všichni <b>${ts.length}</b></button>`;
   for (const o of owners) rail += `<button class="fchip${UF.owner===o?' on':''}" onclick="setUFOwner('${esc(o).replace(/'/g,"\\'")}')">${o==='JNO'?'👤 JNO':esc(o)} <b>${byOwner[o].length}</b></button>`;
   rail += '</div>';
 
   /* --- výběr podle řešitele --- */
-  const sel = UF.owner === null ? ts : ts.filter(t => ownerKey(t) === UF.owner);
+  const sel = UF.owner === null ? ts : ts.filter(t => groupKey(t) === UF.owner);
 
   /* --- filtr stavu --- */
   const cnt = {
