@@ -320,6 +320,23 @@ async function actProj(id, status) {
   } catch(e) { toast('Chyba: ' + e.message); }
 }
 
+/* ---------- priorita (rámec P1–P5, 24. 8. 2026) ---------- */
+const PRIO = {1:['P1','#b3261e','rgba(179,38,30,.14)'],2:['P2','#c25c00','rgba(194,92,0,.14)'],3:['P3','#8a7500','rgba(180,155,0,.16)'],4:['P4','#2e7d32','rgba(46,125,50,.13)'],5:['P5','#5f6368','rgba(95,99,104,.13)']};
+function prioBadge(t, mode) {
+  const p = t.priority; const c = PRIO[p] || ['P·','#9aa0a6','rgba(154,160,166,.12)'];
+  return `<button class="badge" title="Priorita (1 = nejvyšší) — klikem měníš, po P5 se vypne" style="background:${c[2]};color:${c[1]};border:none;cursor:pointer;font-weight:700" onclick="cyclePrio('${t.id}','${mode}')">${p ? c[0] : 'P·'}</button>`;
+}
+async function cyclePrio(id, mode) {
+  const t = findTask(id); if (!t) return;
+  const next = !t.priority ? 1 : (t.priority >= 5 ? null : t.priority + 1);
+  try {
+    const res = await call({ action:'update', id, status: t.status, priority: next === null ? '' : next });
+    if (res.error) throw new Error(res.error);
+    t.priority = next; renderT(); renderU();
+  } catch(e) { toast('Chyba: ' + e.message); }
+}
+const byPrio = (a,b) => ((a.priority||9)-(b.priority||9)) || ((a.due_date||'9999').localeCompare(b.due_date||'9999'));
+
 /* ---------- shared task row ---------- */
 function taskRow(t, mode) {
   const jno = isJNO(t.owner);
@@ -340,7 +357,7 @@ function taskRow(t, mode) {
     <div class="t-row"><div style="flex:1">
       <div class="t-title">${esc(t.title)}</div>
       <div class="t-meta">
-        <span class="badge ${jno?'b-jno':'b-other'}">${jno?'👤 JNO':'👥 '+esc(t.owner)}</span>${due}${dur}${cal}${tdone}${proj}
+        <span class="badge ${jno?'b-jno':'b-other'}">${jno?'👤 JNO':'👥 '+esc(t.owner)}</span>${prioBadge(t, mode)}${due}${dur}${cal}${tdone}${proj}
         ${t.source_quote?`<button class="t-quote-toggle" onclick="document.getElementById('${mode}t-${t.id}').classList.toggle('open')">citace</button>`:''}
         <span class="result-tag" id="${mode}res-${t.id}">${t._acted?resultTag(t._acted, t.id, mode):''}</span>
       </div>
@@ -372,7 +389,7 @@ function renderT() {
   const keys = Object.keys(groups).sort((a,b) => ((recs[b]||{}).recorded_at||'').localeCompare((recs[a]||{}).recorded_at||''));
   let html = '', letter = 65;
   for (const k of keys) {
-    const r = recs[k]; const ts = groups[k];
+    const r = recs[k]; const ts = groups[k].slice().sort(byPrio);
     const jnoCnt = ts.filter(t=>isJNO(t.owner)).length;
     const L = String.fromCharCode(letter++);
     html += `<div class="block" data-block="${k}">
@@ -446,7 +463,7 @@ function renderU() {
       todo: t => !t.due_date,
     }[UF.view];
     const titles = { propadle: '🔴 Propadlé', dnes: '📆 Dnes', tyden: '📅 Tento týden', todo: '📥 TO DO — bez termínu' };
-    secs = [{ title: titles[UF.view], items: sel.filter(f).sort((a,b) => (a.due_date||'9999').localeCompare(b.due_date||'9999')),
+    secs = [{ title: titles[UF.view], items: sel.filter(f).sort(byPrio),
       note: UF.view === 'todo' ? 'Přes ✎ nebo 📅 přidej termín — zapíše se do kalendáře.' : null }];
   } else if (UF.owner !== null && UF.owner !== 'JNO') {
     secs = [
@@ -469,6 +486,7 @@ function renderU() {
   let html = '';
   for (const s of secs) {
     if (!s.items.length) continue;
+    s.items = s.items.slice().sort(byPrio);
     html += `<div class="block"><div class="block-head"><div><div class="block-title">${s.title}</div>
       <div class="block-meta">${s.items.length} úkolů</div></div></div>`;
     for (const t of s.items) html += taskRow(t, 'U');
