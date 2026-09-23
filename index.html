@@ -96,6 +96,58 @@
   #toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--card2); border:1px solid var(--border); color:var(--text); padding:10px 18px; border-radius:10px; font-size:13px; opacity:0; transition:opacity .3s; pointer-events:none; z-index:9; }
   #toast.show { opacity:1; }
   .spin { text-align:center; color:var(--muted); padding:40px; }
+  .tabs { flex-wrap:wrap; }
+  .hsec { margin-bottom:22px; }
+  .hsec-head { display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin:0 2px 8px; }
+  .hsec-title { font-size:16px; font-weight:800; }
+  .hsec-meta { font-size:12px; color:var(--muted); }
+  .hcard { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:13px 14px; margin-bottom:9px; position:relative; transition:border-color .15s, background .15s; }
+  .hcard.drag { border:2px dashed var(--lime-ink); background:rgba(200,240,75,.12); }
+  .hcard.focus { border-left:4px solid var(--lime-ink); }
+  .hcard.st-nejasne { border-left:4px solid #d08a1e; }
+  .hcard.st-hotovo { border-left:4px solid var(--blue); }
+  .hcard.closed { opacity:.55; }
+  .h-title { font-size:15px; font-weight:650; line-height:1.4; }
+  .h-body { font-size:13px; color:var(--text); opacity:.85; margin-top:5px; line-height:1.5; white-space:pre-wrap; }
+  .h-meta { margin-top:7px; font-size:12px; color:var(--muted); display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .b-new { background:#ff5a36; color:#fff; }
+  .b-st { background:rgba(109,117,101,.14); color:var(--muted); }
+  .b-st-beru { background:rgba(170,215,60,.25); color:var(--lime-ink); }
+  .b-st-nejasne { background:rgba(208,138,30,.16); color:#a2650c; }
+  .b-st-hotovo { background:rgba(31,111,191,.12); color:var(--blue); }
+  .h-actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .hb { background:var(--card2); color:var(--text); border:1px solid var(--border); padding:8px 11px; font-size:13px; border-radius:8px; font-weight:600; }
+  .hb:hover { border-color:var(--muted); }
+  .hb.on { background:var(--lime); border-color:var(--lime); color:#111; }
+  .hb-beru.on { background:var(--lime); }
+  .hb-nej.on { background:#f0b35a; border-color:#f0b35a; }
+  .hb-hot.on { background:var(--blue); border-color:var(--blue); color:#fff; }
+  .hb-ghost { background:transparent; color:var(--muted); }
+  .hb-ok { background:var(--lime); border-color:var(--lime); color:#111; }
+  .h-files { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .fchip2 { display:inline-flex; align-items:center; gap:6px; background:rgba(31,111,191,.08); color:var(--blue); border:1px solid rgba(31,111,191,.25); border-radius:8px; padding:5px 9px; font-size:12px; font-weight:600; cursor:pointer; max-width:100%; }
+  .fchip2 span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:220px; }
+  .fchip2 .x { color:var(--muted); font-weight:400; padding-left:2px; }
+  .h-thread { margin-top:10px; border-top:1px solid var(--border); padding-top:8px; display:none; }
+  .hcard.open .h-thread { display:block; }
+  .h-c { font-size:13px; line-height:1.45; margin:5px 0; }
+  .h-c .who { font-weight:700; }
+  .h-c .when { color:var(--muted); font-size:11px; margin-left:4px; }
+  .h-c.stav { color:var(--muted); font-size:12px; }
+  .h-input { display:flex; gap:6px; margin-top:8px; }
+  .h-input textarea { flex:1; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:9px; font-size:14px; font-family:inherit; resize:vertical; min-height:40px; }
+  .h-input textarea:focus { outline:none; border-color:var(--lime); }
+  .h-add { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin-bottom:18px; }
+  .h-add summary { cursor:pointer; font-weight:700; font-size:14px; list-style:none; }
+  .h-add summary::-webkit-details-marker { display:none; }
+  .h-add .edit-form { display:flex; margin-top:10px; }
+  .h-add select, .h-add input, .h-add textarea { background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:9px; font-size:14px; font-family:inherit; }
+  .h-drop { border:1.5px dashed var(--border); border-radius:8px; padding:10px; font-size:12px; color:var(--muted); text-align:center; cursor:pointer; }
+  .h-drop.drag { border-color:var(--lime-ink); background:rgba(200,240,75,.12); }
+  .h-more { background:none; color:var(--muted); text-decoration:underline; font-size:13px; padding:4px 2px; }
+  .h-empty { font-size:13px; color:var(--muted); padding:10px 2px; }
+  .h-callbar { background:rgba(200,240,75,.18); border:1px solid rgba(120,160,30,.35); border-radius:10px; padding:9px 12px; font-size:13px; margin-bottom:9px; color:var(--lime-ink); font-weight:600; }
+  .h-upl { font-size:12px; color:var(--blue); margin-top:6px; }
 </style>
 </head>
 <body>
@@ -115,6 +167,7 @@
     <button class="tab" id="tabU" onclick="showTab('U')">Úkoly <span id="cntU"></span></button>
     <button class="tab" id="tabP" onclick="showTab('P')">Projekty <span id="cntP"></span></button>
     <button class="tab" id="tabL" onclick="showTab('L')">Trello <span id="cntL"></span></button>
+    <button class="tab" id="tabH" onclick="showTab('H')">🤝 Honza <span id="cntH"></span></button>
   </div>
 
   <div id="viewD" style="display:none">
@@ -151,6 +204,12 @@
     <div id="lblocks"><div class="spin">Načítám…</div></div>
     <div id="emptyL" style="text-align:center;padding:60px 20px;color:var(--muted);display:none"><div class="big">📋</div>Zatím žádné zaznamenané změny — evidence začala 17. 8. 2026.</div>
   </div>
+  <div id="viewH" style="display:none">
+    <p class="sub" id="hsub">Společná nástěnka Jiří × Honza. U úkolu: 👍 Beru · ❓ Nejasné · ✓ Hotovo · 💬 Komentář. Soubor stačí přetáhnout na kartu (nebo 📎).</p>
+    <div id="haddwrap"></div>
+    <div class="toolbar"><div class="count" id="htitle"></div><button class="btn-ghost" onclick="hReload()">↻ Obnovit</button></div>
+    <div id="hblocks"><div class="spin">Načítám…</div></div>
+  </div>
   <div style="text-align:center;margin-top:26px"><button class="undo" onclick="logout()">odhlásit se z tohoto zařízení</button></div>
 </div>
 <div id="toast"></div>
@@ -164,10 +223,22 @@ async function call(payload) {
   if (r.status === 401) throw new Error('unauthorized');
   return r.json();
 }
+async function detectRole() {
+  const w = await call({action:'whoami'});
+  ROLE = w.role || 'JNO';
+  const hadd = document.getElementById('haddwrap'); if (hadd && !hadd.innerHTML) hadd.innerHTML = hAddForm();
+  if (ROLE === 'Honza') {
+    document.querySelector('#app .tabs').style.display = 'none';
+    document.querySelector('#app h1').innerHTML = '<span class="dot"></span>Jiří × Honza';
+    document.title = 'Jiří × Honza — společná nástěnka';
+    showTab('H');
+  }
+}
 async function doLogin() {
   ACCESS = document.getElementById('pw').value.trim();
   document.getElementById('loginErr').textContent = '';
   try {
+    await detectRole();
     await loadAll(true);
     try { localStorage.setItem('asistPw', ACCESS); } catch(_) {}
     document.getElementById('login').style.display = 'none';
@@ -182,12 +253,18 @@ function isJNO(o){ return !o || /jno|jiří|jiri/i.test(o); }
 function todayISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 
 function showTab(t) {
-  for (const x of ['D','T','U','P','L']) {
+  if (t==='H') { hLoadSeen(); hMarkSeen(); }
+  for (const x of ['D','T','U','P','L','H']) {
     document.getElementById('tab'+x).classList.toggle('active', t===x);
     document.getElementById('view'+x).style.display = t===x ? 'block' : 'none';
   }
 }
 async function loadAll(throwErr) {
+  if (ROLE === 'Honza') {
+    try { HDATA = await call({action:'sh_list'}); } catch(e) { if (throwErr) throw e; toast('Chyba: ' + e.message); return; }
+    renderH(); return;
+  }
+  call({action:'sh_list'}).then(d => { HDATA = d; renderH(); }).catch(() => {});
   try {
     [DATA, ODATA, PDATA, LDATA, BDATA] = await Promise.all([call({action:'list'}), call({action:'list_open'}), call({action:'list_projects'}), call({action:'list_trello'}).catch(()=>({events:[]})), call({action:'get_brief'}).catch(()=>({brief:null}))]);
   } catch(e) {
@@ -645,12 +722,250 @@ async function autoLogin() {
   document.getElementById('pw').value = saved;
   ACCESS = saved;
   try {
+    await detectRole();
     await loadAll(true);
     document.getElementById('login').style.display = 'none';
     document.getElementById('app').style.display = 'block';
   } catch(e) {
     if (e.message === 'unauthorized') { try { localStorage.removeItem('asistPw'); } catch(_) {} document.getElementById('pw').value = ''; }
   }
+}
+/* ---------- Sdílená nástěnka Jiří × Honza ---------- */
+let ROLE = 'JNO', HDATA = null, HSEEN = null, HOPEN = new Set(), HMORE = {}, HPEND = {};
+const H_OTHER = () => ROLE === 'JNO' ? 'Honza' : 'JNO';
+const H_NAME = (a) => a === 'JNO' ? 'Jiří' : a;
+const H_ST = { nove:'nové', beru:'Beru', nejasne:'Nejasné', hotovo:'Hotovo', potvrzeno:'Potvrzeno', probrano:'Probráno' };
+function hSeenKey(){ return 'shSeen_' + ROLE; }
+function hLoadSeen(){ if (HSEEN !== null) return; try { HSEEN = localStorage.getItem(hSeenKey()) || '1970-01-01'; } catch(_) { HSEEN = '1970-01-01'; } }
+function hMarkSeen(){ const now = new Date().toISOString(); try { localStorage.setItem(hSeenKey(), now); } catch(_) {} }
+function hWhen(ts){ if(!ts) return ''; const d = new Date(ts); return d.getDate()+'. '+(d.getMonth()+1)+'. '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+function hDays(ts){ return Math.floor((Date.now() - new Date(ts).getTime()) / 86400000); }
+function hSize(n){ if(!n) return ''; return n > 1048576 ? (n/1048576).toFixed(1)+' MB' : Math.max(1, Math.round(n/1024))+' kB'; }
+function hComments(id){ return (HDATA.comments||[]).filter(c => c.item_id === id); }
+function hFiles(id){ return (HDATA.files||[]).filter(f => f.item_id === id); }
+function hIsNew(it){
+  const o = H_OTHER();
+  if (it.created_by === o && it.created_at > HSEEN) return true;
+  if (hComments(it.id).some(c => c.author === o && c.created_at > HSEEN)) return true;
+  if (hFiles(it.id).some(f => f.uploaded_by === o && f.created_at > HSEEN)) return true;
+  return false;
+}
+function hNewCount(){ return HDATA ? (HDATA.items||[]).filter(it => !['potvrzeno','probrano'].includes(it.status) && hIsNew(it)).length : 0; }
+function hDueSort(a, b){
+  const da = a.due_date || '9999', db = b.due_date || '9999';
+  if (da !== db) return da < db ? -1 : 1;
+  return a.created_at < b.created_at ? -1 : 1;
+}
+
+function hCard(it, opts = {}) {
+  const cm = hComments(it.id), fl = hFiles(it.id);
+  const closed = ['potvrzeno','probrano'].includes(it.status);
+  const ncom = cm.filter(c => c.kind === 'komentar').length;
+  const isNew = !closed && hIsNew(it);
+  const due = it.due_date ? `<span class="badge b-due">do ${fmtDate(it.due_date)}</span>` : '';
+  const st = it.section === 'ukol' || closed ? `<span class="badge b-st b-st-${it.status}">${H_ST[it.status]||it.status}</span>` : '';
+  const by = `<span>${H_NAME(it.created_by)} · ${hWhen(it.created_at)}</span>`;
+  let acts = '';
+  if (!closed) {
+    if (it.section === 'ukol' && ROLE === 'JNO' && it.status === 'hotovo') {
+      acts += `<button class="hb hb-ok" onclick="hStatus('${it.id}','potvrzeno')">✓✓ Potvrdit a uzavřít</button><button class="hb hb-ghost" onclick="hPend('${it.id}','beru','Co ještě chybí?')">↩ Vrátit</button>`;
+    } else if (it.section === 'ukol') {
+      acts += `<button class="hb hb-beru${it.status==='beru'?' on':''}" onclick="hStatus('${it.id}','beru')">👍 Beru</button>`;
+      acts += `<button class="hb hb-nej${it.status==='nejasne'?' on':''}" onclick="hPend('${it.id}','nejasne')">❓ Nejasné</button>`;
+      acts += `<button class="hb hb-hot${it.status==='hotovo'?' on':''}" onclick="hPend('${it.id}','hotovo')">✓ Hotovo</button>`;
+    } else if (it.section === 'napad') {
+      acts += `<button class="hb" onclick="hMove('${it.id}','schuzka')">→ Na schůzku</button>`;
+      acts += `<button class="hb" onclick="hMove('${it.id}','ukol')">→ Udělat z toho úkol</button>`;
+    } else if (it.section === 'schuzka') {
+      acts += `<button class="hb hb-ok" onclick="hPend('${it.id}','probrano','Závěr (nepovinné)')">✓ Probráno</button>`;
+      acts += `<button class="hb" onclick="hMove('${it.id}','ukol')">→ Úkol</button>`;
+      acts += `<button class="hb hb-ghost" onclick="hMove('${it.id}','napad')">→ Nápady</button>`;
+    }
+    acts += `<button class="hb hb-ghost" onclick="hToggle('${it.id}', true)">💬 Komentář${ncom?' ('+ncom+')':''}</button>`;
+    acts += `<label class="hb hb-ghost" title="Přiložit soubor (nebo přetáhni soubor na kartu)">📎<input type="file" multiple style="display:none" onchange="hUpload('${it.id}', Array.from(this.files)); this.value=''"></label>`;
+    if (ROLE === 'JNO') acts += `<button class="hb hb-ghost" title="Upravit" onclick="hEdit('${it.id}')">✎</button><button class="hb hb-ghost" title="Smazat" onclick="hArchive('${it.id}')">🗑</button>`;
+  } else if (ROLE === 'JNO') {
+    acts += `<button class="hb hb-ghost" onclick="hStatus('${it.id}','${it.section==='schuzka'?'nove':'beru'}')">↩ Znovu otevřít</button>`;
+  }
+  const pend = HPEND[it.id];
+  const pendBox = pend ? `<div class="h-input"><textarea id="hpn-${it.id}" placeholder="${esc(pend.ph)}"></textarea><button class="hb hb-ok" onclick="hPendSave('${it.id}')">Uložit</button><button class="hb hb-ghost" onclick="delete HPEND['${it.id}']; renderH()">✕</button></div>` : '';
+  const files = fl.length ? `<div class="h-files">${fl.map(f => `<span class="fchip2" onclick="hDownload('${f.id}')" title="${esc(f.name)} · nahrál ${H_NAME(f.uploaded_by)} ${hWhen(f.created_at)}">📄 <span>${esc(f.name)}</span> <small style="color:var(--muted);font-weight:400">${hSize(f.size)}</small>${(ROLE==='JNO'||f.uploaded_by===ROLE)&&!closed?`<b class="x" onclick="event.stopPropagation(); hFileDel('${f.id}')">×</b>`:''}</span>`).join('')}</div>` : '';
+  const thread = `<div class="h-thread">${cm.map(c => `<div class="h-c ${c.kind==='stav'?'stav':''}"><span class="who">${H_NAME(c.author)}:</span> ${esc(c.text)}<span class="when">${hWhen(c.created_at)}</span></div>`).join('') || '<div class="h-c stav">Zatím bez komentářů.</div>'}
+    ${closed ? '' : `<div class="h-input"><textarea id="hc-${it.id}" placeholder="Napiš komentář…"></textarea><button class="hb hb-ok" onclick="hComment('${it.id}')">Odeslat</button></div>`}</div>`;
+  const edit = `<div class="edit-form" id="hef-${it.id}">
+      <label>Název</label><input type="text" id="het-${it.id}" value="${esc(it.title)}">
+      <label>Popis</label><textarea id="heb-${it.id}" rows="3">${esc(it.body||'')}</textarea>
+      <div class="edit-row2"><div style="flex:1"><label>Termín</label><br><input type="date" id="hed-${it.id}" value="${it.due_date||''}" style="width:100%"></div></div>
+      <div class="edit-btns"><button class="btn-save" onclick="hSaveEdit('${it.id}')">Uložit</button><button class="btn-cancel" onclick="document.getElementById('hef-${it.id}').classList.remove('show')">Zrušit</button></div></div>`;
+  const cls = ['hcard', 'st-'+it.status, opts.focus?'focus':'', closed?'closed':'', HOPEN.has(it.id)?'open':''].join(' ');
+  return `<div class="${cls}" id="hcard-${it.id}" ondragover="hDrag(event,this,true)" ondragleave="hDrag(event,this,false)" ondrop="hDrop(event,'${it.id}',this)">
+    <div class="h-title">${isNew?'<span class="badge b-new" style="margin-right:6px">NOVÉ</span>':''}${esc(it.title)}</div>
+    ${it.body?`<div class="h-body">${esc(it.body)}</div>`:''}
+    <div class="h-meta">${st}${due}${by}${(cm.length && !HOPEN.has(it.id))?`<button class="t-quote-toggle" onclick="hToggle('${it.id}')">historie (${cm.length})</button>`:''}</div>
+    ${files}<div class="h-upl" id="hup-${it.id}"></div>
+    ${acts?`<div class="h-actions">${acts}</div>`:''}${pendBox}${edit}${thread}</div>`;
+}
+
+function renderH() {
+  const el = document.getElementById('hblocks'); if (!el || !HDATA) return;
+  hLoadSeen();
+  const items = HDATA.items || [];
+  const open = items.filter(i => !['potvrzeno','probrano'].includes(i.status));
+  const closed = items.filter(i => ['potvrzeno','probrano'].includes(i.status)).sort((a,b) => (b.closed_at||'') < (a.closed_at||'') ? -1 : 1);
+  const ukoly = open.filter(i => i.section === 'ukol').sort(hDueSort);
+  const napady = open.filter(i => i.section === 'napad').sort((a,b) => a.created_at < b.created_at ? 1 : -1);
+  const schuzka = open.filter(i => i.section === 'schuzka').sort((a,b) => a.created_at < b.created_at ? -1 : 1);
+  let html = '';
+  // Úkoly
+  const k_potvrzeni = ukoly.filter(i => i.status === 'hotovo');
+  const aktivni = ukoly.filter(i => i.status !== 'hotovo');
+  const n = aktivni.filter(i => i.status === 'nejasne').length;
+  html += `<div class="hsec"><div class="hsec-head"><div class="hsec-title">✅ Úkoly</div><div class="hsec-meta">${aktivni.length} otevřených${n?' · '+n+' nejasné':''}${k_potvrzeni.length?' · '+k_potvrzeni.length+' hotovo k potvrzení':''}</div></div>`;
+  if (!ukoly.length) html += `<div class="h-empty">Žádné otevřené úkoly 🎉</div>`;
+  if (ROLE === 'Honza') {
+    const top = aktivni.slice(0, 3), rest = aktivni.slice(3);
+    if (top.length) html += `<div class="hsec-meta" style="margin:0 2px 6px;font-weight:700;color:var(--lime-ink)">🎯 Tvoje 3 věci teď</div>` + top.map(i => hCard(i, {focus:true})).join('');
+    if (rest.length) html += HMORE.ukol ? rest.map(i => hCard(i)).join('') + `<button class="h-more" onclick="HMORE.ukol=false;renderH()">sbalit</button>` : `<button class="h-more" onclick="HMORE.ukol=true;renderH()">+ další úkoly (${rest.length})</button>`;
+    if (k_potvrzeni.length) html += `<div class="hsec-meta" style="margin:10px 2px 6px">Hotovo — čeká na Jiřího potvrzení</div>` + k_potvrzeni.map(i => hCard(i)).join('');
+  } else {
+    if (k_potvrzeni.length) html += `<div class="hsec-meta" style="margin:0 2px 6px;font-weight:700;color:var(--blue)">Honza hlásí hotovo — potvrď</div>` + k_potvrzeni.map(i => hCard(i)).join('');
+    html += aktivni.map(i => hCard(i)).join('');
+  }
+  html += `</div>`;
+  // Na příští schůzku
+  const oldest = schuzka.length ? hDays(schuzka[0].created_at) : 0;
+  html += `<div class="hsec"><div class="hsec-head"><div class="hsec-title">🗓 Na příští schůzku</div><div class="hsec-meta">${schuzka.length} témat${schuzka.length?' · nejstarší '+oldest+' dní':''}</div></div>`;
+  if (schuzka.length >= 5 || oldest >= 14) html += `<div class="h-callbar">📞 Nasbíralo se ${schuzka.length} témat${oldest>=14?' a nejstarší čeká '+oldest+' dní':''} — čas domluvit call.</div>`;
+  html += schuzka.length ? schuzka.map(i => hCard(i)).join('') : `<div class="h-empty">Zatím nic. Témata na call přidáš formulářem nahoře.</div>`;
+  html += `</div>`;
+  // Nápady
+  html += `<div class="hsec"><div class="hsec-head"><div class="hsec-title">💡 Nápady</div><div class="hsec-meta">${napady.length} odložených</div></div>`;
+  html += napady.length ? napady.map(i => hCard(i)).join('') : `<div class="h-empty">Zatím žádné nápady.</div>`;
+  html += `</div>`;
+  // Uzavřené
+  if (closed.length) {
+    html += `<div class="hsec"><button class="h-more" onclick="HMORE.closed=!HMORE.closed;renderH()">${HMORE.closed?'▾':'▸'} Uzavřené za posledních 60 dní (${closed.length})</button>`;
+    if (HMORE.closed) html += closed.map(i => hCard(i)).join('');
+    html += `</div>`;
+  }
+  el.innerHTML = html;
+  const nc = hNewCount();
+  const tc = document.getElementById('cntH'); if (tc) tc.textContent = nc ? '(' + nc + ' nové)' : '';
+}
+
+function hAddForm() {
+  return `<details class="h-add" id="hadd"><summary>＋ Přidat úkol / nápad / téma na schůzku</summary>
+    <div class="edit-form">
+      <div class="frow" id="hsecsel" style="margin:0">
+        <button class="fchip on" data-s="ukol" onclick="hSelSec('ukol')">✅ Úkol</button>
+        <button class="fchip" data-s="napad" onclick="hSelSec('napad')">💡 Nápad</button>
+        <button class="fchip" data-s="schuzka" onclick="hSelSec('schuzka')">🗓 Na schůzku</button>
+      </div>
+      <input type="text" id="ha-title" placeholder="Co? (krátce, jednoznačně)">
+      <textarea id="ha-body" rows="3" placeholder="Detail, kontext, odkaz… (nepovinné)"></textarea>
+      <div id="ha-duewrap"><label>Termín (nepovinný)</label><br><input type="date" id="ha-due"></div>
+      <div class="h-drop" id="ha-drop" onclick="document.getElementById('ha-file').click()" ondragover="hDrag(event,this,true)" ondragleave="hDrag(event,this,false)" ondrop="hDropNew(event,this)">📎 Přetáhni sem soubory (PDF, MD, XLSX…) nebo klikni<div id="ha-flist" style="margin-top:4px;color:var(--text)"></div></div>
+      <input type="file" id="ha-file" multiple style="display:none" onchange="hAddFiles(Array.from(this.files)); this.value=''">
+      <div class="edit-btns"><button class="btn-save" id="ha-save" onclick="hAdd()">Přidat</button></div>
+    </div></details>`;
+}
+let HADD_SEC = 'ukol', HADD_FILES = [];
+function hSelSec(s){ HADD_SEC = s; document.querySelectorAll('#hsecsel .fchip').forEach(b => b.classList.toggle('on', b.dataset.s === s)); document.getElementById('ha-duewrap').style.display = s === 'ukol' ? '' : 'none'; }
+function hAddFiles(fl){ HADD_FILES.push(...fl); document.getElementById('ha-flist').textContent = HADD_FILES.map(f => f.name).join(', '); }
+function hDropNew(e, el){ e.preventDefault(); el.classList.remove('drag'); if (e.dataTransfer.files.length) hAddFiles(e.dataTransfer.files); }
+async function hAdd() {
+  const title = document.getElementById('ha-title').value.trim();
+  if (!title) { toast('Napiš aspoň název.'); return; }
+  const btn = document.getElementById('ha-save'); btn.disabled = true; btn.textContent = 'Ukládám…';
+  try {
+    const r = await call({ action:'sh_add', section: HADD_SEC, title, body: document.getElementById('ha-body').value, due_date: HADD_SEC === 'ukol' ? (document.getElementById('ha-due').value || null) : null });
+    if (r.error) throw new Error(r.error);
+    for (const f of HADD_FILES) await hUploadOne(r.item.id, f);
+    HADD_FILES = []; ['ha-title','ha-body','ha-due'].forEach(id => document.getElementById(id).value = ''); document.getElementById('ha-flist').textContent = '';
+    toast('Přidáno ✓');
+    await hReload();
+  } catch(e) { toast('Chyba: ' + e.message); }
+  btn.disabled = false; btn.textContent = 'Přidat';
+}
+async function hReload() {
+  try { HDATA = await call({ action:'sh_list' }); renderH(); } catch(e) { toast('Chyba: ' + e.message); }
+}
+function hToggle(id, focus) {
+  if (HOPEN.has(id) && !focus) HOPEN.delete(id); else HOPEN.add(id);
+  renderH();
+  if (focus) { const t = document.getElementById('hc-' + id); if (t) t.focus(); }
+}
+async function hStatus(id, status, note) {
+  try { const r = await call({ action:'sh_status', id, status, note: note || '' }); if (r.error) throw new Error(r.error); delete HPEND[id]; toast(H_ST[status] + ' ✓'); await hReload(); }
+  catch(e) { toast('Chyba: ' + e.message); }
+}
+function hPend(id, status, ph) {
+  const def = { nejasne:'Co přesně je nejasné?', hotovo:'Jak jsi to vyřešil? (nepovinné)', probrano:'Závěr (nepovinné)', beru:'Poznámka' };
+  HPEND[id] = { status, ph: ph || def[status] || 'Poznámka' }; renderH();
+  const t = document.getElementById('hpn-' + id); if (t) t.focus();
+}
+function hPendSave(id) { const p = HPEND[id]; if (!p) return; hStatus(id, p.status, document.getElementById('hpn-' + id).value); }
+async function hComment(id) {
+  const t = document.getElementById('hc-' + id); const text = (t.value || '').trim(); if (!text) return;
+  try { const r = await call({ action:'sh_comment', id, text }); if (r.error) throw new Error(r.error); HOPEN.add(id); await hReload(); }
+  catch(e) { toast('Chyba: ' + e.message); }
+}
+async function hMove(id, section) {
+  try { const r = await call({ action:'sh_update', id, section }); if (r.error) throw new Error(r.error); toast('Přesunuto ✓'); await hReload(); }
+  catch(e) { toast('Chyba: ' + e.message); }
+}
+async function hArchive(id) {
+  if (!confirmInline(id)) return;
+  await hStatus(id, 'archiv');
+}
+const HDEL = {};
+function confirmInline(id) { if (HDEL[id]) { delete HDEL[id]; return true; } HDEL[id] = 1; toast('Klikni na 🗑 znovu pro smazání'); setTimeout(() => delete HDEL[id], 3000); return false; }
+function hEdit(id) { document.getElementById('hef-' + id).classList.toggle('show'); }
+async function hSaveEdit(id) {
+  try {
+    const r = await call({ action:'sh_update', id, title: document.getElementById('het-' + id).value, body: document.getElementById('heb-' + id).value, due_date: document.getElementById('hed-' + id).value || null });
+    if (r.error) throw new Error(r.error); toast('Uloženo ✓'); await hReload();
+  } catch(e) { toast('Chyba: ' + e.message); }
+}
+function hDrag(e, el, on) { e.preventDefault(); el.classList.toggle('drag', on); }
+function hDrop(e, id, el) { e.preventDefault(); el.classList.remove('drag'); if (e.dataTransfer.files.length) hUpload(id, e.dataTransfer.files); }
+async function hUploadOne(id, file) {
+  if (file.size > 50 * 1048576) { toast(file.name + ': max 50 MB'); return; }
+  const u = await call({ action:'sh_upload_url', id, name: file.name });
+  if (u.error) throw new Error(u.error);
+  const fd = new FormData(); fd.append('cacheControl', '3600'); fd.append('', file);
+  const r = await fetch(u.signedUrl, { method:'PUT', body: fd });
+  if (!r.ok) throw new Error('upload ' + r.status);
+  const a = await call({ action:'sh_file_add', id, path: u.path, name: file.name, size: file.size, mime: file.type || null });
+  if (a.error) throw new Error(a.error);
+}
+async function hUpload(id, files) {
+  const st = document.getElementById('hup-' + id);
+  try {
+    let i = 0;
+    for (const f of files) { i++; if (st) st.textContent = `Nahrávám ${i}/${files.length}: ${f.name}…`; await hUploadOne(id, f); }
+    toast('Nahráno ✓'); await hReload();
+  } catch(e) { if (st) st.textContent = ''; toast('Chyba nahrávání: ' + e.message); }
+}
+async function hDownload(fid) {
+  const f = (HDATA.files || []).find(x => x.id === fid);
+  try {
+    const r = await call({ action:'sh_file_url', file_id: fid, inline: true }); if (r.error) throw new Error(r.error);
+    const resp = await fetch(r.url); const blob = await resp.blob();
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = f ? f.name : 'soubor';
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  } catch(e) { toast('Chyba: ' + e.message); }
+}
+async function hFileDel(fid) {
+  if (!confirmInline('f' + fid)) return;
+  try { const r = await call({ action:'sh_file_del', file_id: fid }); if (r.error) throw new Error(r.error); toast('Soubor smazán'); await hReload(); }
+  catch(e) { toast('Chyba: ' + e.message); }
+}
+
+if (/honza/i.test(location.search)) {
+  document.querySelector('#login h1').innerHTML = '<span class="dot"></span>Jiří × Honza';
+  document.querySelector('#login .sub').textContent = 'Společná nástěnka úkolů a témat';
+  document.title = 'Jiří × Honza — společná nástěnka';
 }
 autoLogin();
 </script>
