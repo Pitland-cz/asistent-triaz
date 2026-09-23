@@ -148,6 +148,18 @@
   .h-empty { font-size:13px; color:var(--muted); padding:10px 2px; }
   .h-callbar { background:rgba(200,240,75,.18); border:1px solid rgba(120,160,30,.35); border-radius:10px; padding:9px 12px; font-size:13px; margin-bottom:9px; color:var(--lime-ink); font-weight:600; }
   .h-upl { font-size:12px; color:var(--blue); margin-top:6px; }
+  .pr { padding:2px 8px; border-radius:20px; font-size:11px; font-weight:800; letter-spacing:.02em; }
+  .pr-sos { background:#d7261e; color:#fff; }
+  .pr-high { background:rgba(230,120,20,.18); color:#b35a00; }
+  .pr-medium { background:rgba(31,111,191,.12); color:var(--blue); }
+  .pr-low { background:rgba(109,117,101,.14); color:var(--muted); }
+  .hcard.p-sos { border-left:4px solid #d7261e; }
+  .prsel { display:flex; flex-wrap:wrap; gap:6px; }
+  .prsel .fchip.on.pc-sos { background:#d7261e; border-color:#d7261e; color:#fff; }
+  .prsel .fchip.on.pc-high { background:#f0a04b; border-color:#f0a04b; color:#111; }
+  .prsel .fchip.on.pc-medium { background:#8fb8e6; border-color:#8fb8e6; color:#111; }
+  .prsel .fchip.on.pc-low { background:#d9ddd2; border-color:#d9ddd2; color:#111; }
+  .h-row2 { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; }
 </style>
 </head>
 <body>
@@ -205,7 +217,7 @@
     <div id="emptyL" style="text-align:center;padding:60px 20px;color:var(--muted);display:none"><div class="big">📋</div>Zatím žádné zaznamenané změny — evidence začala 17. 8. 2026.</div>
   </div>
   <div id="viewH" style="display:none">
-    <p class="sub" id="hsub">Společná nástěnka Jiří × Honza. U úkolu: 👍 Beru · ❓ Nejasné · ✓ Hotovo · 💬 Komentář. Soubor stačí přetáhnout na kartu (nebo 📎).</p>
+    <p class="sub" id="hsub">Společná nástěnka Jiří × Honza. U TO DO: 👍 Beru · ❓ Nejasné · ✓ Hotovo · 💬 Komentář. Soubor stačí přetáhnout na kartu (nebo 📎).</p>
     <div id="haddwrap"></div>
     <div class="toolbar"><div class="count" id="htitle"></div><button class="btn-ghost" onclick="hReload()">↻ Obnovit</button></div>
     <div id="hblocks"><div class="spin">Načítám…</div></div>
@@ -734,6 +746,12 @@ async function autoLogin() {
 let ROLE = 'JNO', HDATA = null, HSEEN = null, HOPEN = new Set(), HMORE = {}, HPEND = {};
 const H_OTHER = () => ROLE === 'JNO' ? 'Honza' : 'JNO';
 const H_NAME = (a) => a === 'JNO' ? 'Jiří' : a;
+const H_PR = { sos:'SOS', high:'High', medium:'Medium', low:'Low' };
+const H_PR_ORD = { sos:0, high:1, medium:2, low:3 };
+function hPrSel(prefix, cur){ return `<div class="prsel" id="${prefix}" data-v="${cur||''}">` + ['sos','high','medium','low'].map(p => `<button type="button" class="fchip f2 pc-${p}${cur===p?' on':''}" data-p="${p}" onclick="hPickPr('${prefix}','${p}')">${H_PR[p]}</button>`).join('') + `</div>`; }
+function hPickPr(prefix, p){ const el = document.getElementById(prefix); const was = el.dataset.v === p; el.dataset.v = was ? '' : p; el.querySelectorAll('.fchip').forEach(b => b.classList.toggle('on', !was && b.dataset.p === p)); }
+function hPrReset(prefix){ const el = document.getElementById(prefix); if (!el) return; el.dataset.v = ''; el.querySelectorAll('.fchip').forEach(b => b.classList.remove('on')); }
+function hPrGet(prefix){ const el = document.getElementById(prefix); return el ? (el.dataset.v || null) : null; }
 const H_ST = { nove:'nové', beru:'Beru', nejasne:'Nejasné', hotovo:'Hotovo', potvrzeno:'Potvrzeno', probrano:'Probráno' };
 function hSeenKey(){ return 'shSeen_' + ROLE; }
 function hLoadSeen(){ if (HSEEN !== null) return; try { HSEEN = localStorage.getItem(hSeenKey()) || '1970-01-01'; } catch(_) { HSEEN = '1970-01-01'; } }
@@ -752,6 +770,8 @@ function hIsNew(it){
 }
 function hNewCount(){ return HDATA ? (HDATA.items||[]).filter(it => !['potvrzeno','probrano'].includes(it.status) && hIsNew(it)).length : 0; }
 function hDueSort(a, b){
+  const pa = H_PR_ORD[a.priority] ?? 2, pb = H_PR_ORD[b.priority] ?? 2;
+  if (pa !== pb) return pa - pb;
   const da = a.due_date || '9999', db = b.due_date || '9999';
   if (da !== db) return da < db ? -1 : 1;
   return a.created_at < b.created_at ? -1 : 1;
@@ -764,6 +784,7 @@ function hCard(it, opts = {}) {
   const isNew = !closed && hIsNew(it);
   const due = it.due_date ? `<span class="badge b-due">do ${fmtDate(it.due_date)}</span>` : '';
   const st = it.section === 'ukol' || closed ? `<span class="badge b-st b-st-${it.status}">${H_ST[it.status]||it.status}</span>` : '';
+  const pr = it.priority ? `<span class="pr pr-${it.priority}">${H_PR[it.priority]}</span>` : '';
   const by = `<span>${H_NAME(it.created_by)} · ${hWhen(it.created_at)}</span>`;
   let acts = '';
   if (!closed) {
@@ -775,15 +796,16 @@ function hCard(it, opts = {}) {
       acts += `<button class="hb hb-hot${it.status==='hotovo'?' on':''}" onclick="hPend('${it.id}','hotovo')">✓ Hotovo</button>`;
     } else if (it.section === 'napad') {
       acts += `<button class="hb" onclick="hMove('${it.id}','schuzka')">→ Na schůzku</button>`;
-      acts += `<button class="hb" onclick="hMove('${it.id}','ukol')">→ Udělat z toho úkol</button>`;
+      acts += `<button class="hb" onclick="hMove('${it.id}','ukol')">→ Do TO DO</button>`;
     } else if (it.section === 'schuzka') {
       acts += `<button class="hb hb-ok" onclick="hPend('${it.id}','probrano','Závěr (nepovinné)')">✓ Probráno</button>`;
-      acts += `<button class="hb" onclick="hMove('${it.id}','ukol')">→ Úkol</button>`;
-      acts += `<button class="hb hb-ghost" onclick="hMove('${it.id}','napad')">→ Nápady</button>`;
+      acts += `<button class="hb" onclick="hMove('${it.id}','ukol')">→ TO DO</button>`;
+      acts += `<button class="hb hb-ghost" onclick="hMove('${it.id}','napad')">→ Nápady a zajímavosti</button>`;
     }
     acts += `<button class="hb hb-ghost" onclick="hToggle('${it.id}', true)">💬 Komentář${ncom?' ('+ncom+')':''}</button>`;
     acts += `<label class="hb hb-ghost" title="Přiložit soubor (nebo přetáhni soubor na kartu)">📎<input type="file" multiple style="display:none" onchange="hUpload('${it.id}', Array.from(this.files)); this.value=''"></label>`;
-    if (ROLE === 'JNO') acts += `<button class="hb hb-ghost" title="Upravit" onclick="hEdit('${it.id}')">✎</button><button class="hb hb-ghost" title="Smazat" onclick="hArchive('${it.id}')">🗑</button>`;
+    acts += `<button class="hb hb-ghost" title="Upravit (název, popis, priorita, termín)" onclick="hEdit('${it.id}')">✎</button>`;
+    if (ROLE === 'JNO') acts += `<button class="hb hb-ghost" title="Smazat" onclick="hArchive('${it.id}')">🗑</button>`;
   } else if (ROLE === 'JNO') {
     acts += `<button class="hb hb-ghost" onclick="hStatus('${it.id}','${it.section==='schuzka'?'nove':'beru'}')">↩ Znovu otevřít</button>`;
   }
@@ -795,13 +817,13 @@ function hCard(it, opts = {}) {
   const edit = `<div class="edit-form" id="hef-${it.id}">
       <label>Název</label><input type="text" id="het-${it.id}" value="${esc(it.title)}">
       <label>Popis</label><textarea id="heb-${it.id}" rows="3">${esc(it.body||'')}</textarea>
-      <div class="edit-row2"><div style="flex:1"><label>Termín</label><br><input type="date" id="hed-${it.id}" value="${it.due_date||''}" style="width:100%"></div></div>
+      <div class="h-row2"><div><label>Priorita</label><br>${hPrSel('hep-'+it.id, it.priority)}</div><div><label>Termín</label><br><input type="date" id="hed-${it.id}" value="${it.due_date||''}"></div></div>
       <div class="edit-btns"><button class="btn-save" onclick="hSaveEdit('${it.id}')">Uložit</button><button class="btn-cancel" onclick="document.getElementById('hef-${it.id}').classList.remove('show')">Zrušit</button></div></div>`;
-  const cls = ['hcard', 'st-'+it.status, opts.focus?'focus':'', closed?'closed':'', HOPEN.has(it.id)?'open':''].join(' ');
+  const cls = ['hcard', 'st-'+it.status, it.priority==='sos'?'p-sos':'', opts.focus?'focus':'', closed?'closed':'', HOPEN.has(it.id)?'open':''].join(' ');
   return `<div class="${cls}" id="hcard-${it.id}" ondragover="hDrag(event,this,true)" ondragleave="hDrag(event,this,false)" ondrop="hDrop(event,'${it.id}',this)">
     <div class="h-title">${isNew?'<span class="badge b-new" style="margin-right:6px">NOVÉ</span>':''}${esc(it.title)}</div>
     ${it.body?`<div class="h-body">${esc(it.body)}</div>`:''}
-    <div class="h-meta">${st}${due}${by}${(cm.length && !HOPEN.has(it.id))?`<button class="t-quote-toggle" onclick="hToggle('${it.id}')">historie (${cm.length})</button>`:''}</div>
+    <div class="h-meta">${pr}${st}${due}${by}${(cm.length && !HOPEN.has(it.id))?`<button class="t-quote-toggle" onclick="hToggle('${it.id}')">historie (${cm.length})</button>`:''}</div>
     ${files}<div class="h-upl" id="hup-${it.id}"></div>
     ${acts?`<div class="h-actions">${acts}</div>`:''}${pendBox}${edit}${thread}</div>`;
 }
@@ -820,12 +842,12 @@ function renderH() {
   const k_potvrzeni = ukoly.filter(i => i.status === 'hotovo');
   const aktivni = ukoly.filter(i => i.status !== 'hotovo');
   const n = aktivni.filter(i => i.status === 'nejasne').length;
-  html += `<div class="hsec"><div class="hsec-head"><div class="hsec-title">✅ Úkoly</div><div class="hsec-meta">${aktivni.length} otevřených${n?' · '+n+' nejasné':''}${k_potvrzeni.length?' · '+k_potvrzeni.length+' hotovo k potvrzení':''}</div></div>`;
-  if (!ukoly.length) html += `<div class="h-empty">Žádné otevřené úkoly 🎉</div>`;
+  html += `<div class="hsec"><div class="hsec-head"><div class="hsec-title">✅ TO DO</div><div class="hsec-meta">${aktivni.length} otevřených${n?' · '+n+' nejasné':''}${k_potvrzeni.length?' · '+k_potvrzeni.length+' hotovo k potvrzení':''}</div></div>`;
+  if (!ukoly.length) html += `<div class="h-empty">TO DO je prázdné 🎉</div>`;
   if (ROLE === 'Honza') {
     const top = aktivni.slice(0, 3), rest = aktivni.slice(3);
     if (top.length) html += `<div class="hsec-meta" style="margin:0 2px 6px;font-weight:700;color:var(--lime-ink)">🎯 Tvoje 3 věci teď</div>` + top.map(i => hCard(i, {focus:true})).join('');
-    if (rest.length) html += HMORE.ukol ? rest.map(i => hCard(i)).join('') + `<button class="h-more" onclick="HMORE.ukol=false;renderH()">sbalit</button>` : `<button class="h-more" onclick="HMORE.ukol=true;renderH()">+ další úkoly (${rest.length})</button>`;
+    if (rest.length) html += HMORE.ukol ? rest.map(i => hCard(i)).join('') + `<button class="h-more" onclick="HMORE.ukol=false;renderH()">sbalit</button>` : `<button class="h-more" onclick="HMORE.ukol=true;renderH()">+ další TO DO (${rest.length})</button>`;
     if (k_potvrzeni.length) html += `<div class="hsec-meta" style="margin:10px 2px 6px">Hotovo — čeká na Jiřího potvrzení</div>` + k_potvrzeni.map(i => hCard(i)).join('');
   } else {
     if (k_potvrzeni.length) html += `<div class="hsec-meta" style="margin:0 2px 6px;font-weight:700;color:var(--blue)">Honza hlásí hotovo — potvrď</div>` + k_potvrzeni.map(i => hCard(i)).join('');
@@ -839,8 +861,8 @@ function renderH() {
   html += schuzka.length ? schuzka.map(i => hCard(i)).join('') : `<div class="h-empty">Zatím nic. Témata na call přidáš formulářem nahoře.</div>`;
   html += `</div>`;
   // Nápady
-  html += `<div class="hsec"><div class="hsec-head"><div class="hsec-title">💡 Nápady</div><div class="hsec-meta">${napady.length} odložených</div></div>`;
-  html += napady.length ? napady.map(i => hCard(i)).join('') : `<div class="h-empty">Zatím žádné nápady.</div>`;
+  html += `<div class="hsec"><div class="hsec-head"><div class="hsec-title">💡 Nápady a zajímavosti</div><div class="hsec-meta">${napady.length} odložených</div></div>`;
+  html += napady.length ? napady.map(i => hCard(i)).join('') : `<div class="h-empty">Zatím žádné nápady ani zajímavosti.</div>`;
   html += `</div>`;
   // Uzavřené
   if (closed.length) {
@@ -854,16 +876,16 @@ function renderH() {
 }
 
 function hAddForm() {
-  return `<details class="h-add" id="hadd"><summary>＋ Přidat úkol / nápad / téma na schůzku</summary>
+  return `<details class="h-add" id="hadd"><summary>＋ Přidat TO DO / téma na schůzku / nápad</summary>
     <div class="edit-form">
       <div class="frow" id="hsecsel" style="margin:0">
-        <button class="fchip on" data-s="ukol" onclick="hSelSec('ukol')">✅ Úkol</button>
-        <button class="fchip" data-s="napad" onclick="hSelSec('napad')">💡 Nápad</button>
+        <button class="fchip on" data-s="ukol" onclick="hSelSec('ukol')">✅ TO DO</button>
+        <button class="fchip" data-s="napad" onclick="hSelSec('napad')">💡 Nápad / zajímavost</button>
         <button class="fchip" data-s="schuzka" onclick="hSelSec('schuzka')">🗓 Na schůzku</button>
       </div>
       <input type="text" id="ha-title" placeholder="Co? (krátce, jednoznačně)">
       <textarea id="ha-body" rows="3" placeholder="Detail, kontext, odkaz… (nepovinné)"></textarea>
-      <div id="ha-duewrap"><label>Termín (nepovinný)</label><br><input type="date" id="ha-due"></div>
+      <div id="ha-duewrap" class="h-row2"><div><label>Priorita</label><br>${hPrSel('ha-pr', null)}</div><div><label>Termín (nepovinný)</label><br><input type="date" id="ha-due"></div></div>
       <div class="h-drop" id="ha-drop" onclick="document.getElementById('ha-file').click()" ondragover="hDrag(event,this,true)" ondragleave="hDrag(event,this,false)" ondrop="hDropNew(event,this)">📎 Přetáhni sem soubory (PDF, MD, XLSX…) nebo klikni<div id="ha-flist" style="margin-top:4px;color:var(--text)"></div></div>
       <input type="file" id="ha-file" multiple style="display:none" onchange="hAddFiles(Array.from(this.files)); this.value=''">
       <div class="edit-btns"><button class="btn-save" id="ha-save" onclick="hAdd()">Přidat</button></div>
@@ -878,10 +900,10 @@ async function hAdd() {
   if (!title) { toast('Napiš aspoň název.'); return; }
   const btn = document.getElementById('ha-save'); btn.disabled = true; btn.textContent = 'Ukládám…';
   try {
-    const r = await call({ action:'sh_add', section: HADD_SEC, title, body: document.getElementById('ha-body').value, due_date: HADD_SEC === 'ukol' ? (document.getElementById('ha-due').value || null) : null });
+    const r = await call({ action:'sh_add', section: HADD_SEC, title, body: document.getElementById('ha-body').value, due_date: HADD_SEC === 'ukol' ? (document.getElementById('ha-due').value || null) : null, priority: HADD_SEC === 'ukol' ? hPrGet('ha-pr') : null });
     if (r.error) throw new Error(r.error);
     for (const f of HADD_FILES) await hUploadOne(r.item.id, f);
-    HADD_FILES = []; ['ha-title','ha-body','ha-due'].forEach(id => document.getElementById(id).value = ''); document.getElementById('ha-flist').textContent = '';
+    HADD_FILES = []; ['ha-title','ha-body','ha-due'].forEach(id => document.getElementById(id).value = ''); document.getElementById('ha-flist').textContent = ''; hPrReset('ha-pr');
     toast('Přidáno ✓');
     await hReload();
   } catch(e) { toast('Chyba: ' + e.message); }
@@ -923,7 +945,7 @@ function confirmInline(id) { if (HDEL[id]) { delete HDEL[id]; return true; } HDE
 function hEdit(id) { document.getElementById('hef-' + id).classList.toggle('show'); }
 async function hSaveEdit(id) {
   try {
-    const r = await call({ action:'sh_update', id, title: document.getElementById('het-' + id).value, body: document.getElementById('heb-' + id).value, due_date: document.getElementById('hed-' + id).value || null });
+    const r = await call({ action:'sh_update', id, title: document.getElementById('het-' + id).value, body: document.getElementById('heb-' + id).value, due_date: document.getElementById('hed-' + id).value || null, priority: hPrGet('hep-' + id) || '' });
     if (r.error) throw new Error(r.error); toast('Uloženo ✓'); await hReload();
   } catch(e) { toast('Chyba: ' + e.message); }
 }
@@ -964,7 +986,7 @@ async function hFileDel(fid) {
 
 if (/honza/i.test(location.search)) {
   document.querySelector('#login h1').innerHTML = '<span class="dot"></span>Jiří × Honza';
-  document.querySelector('#login .sub').textContent = 'Společná nástěnka úkolů a témat';
+  document.querySelector('#login .sub').textContent = 'Společná nástěnka úkolů, témat a nápadů';
   document.title = 'Jiří × Honza — společná nástěnka';
 }
 autoLogin();
