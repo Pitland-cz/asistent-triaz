@@ -148,6 +148,11 @@
   .h-empty { font-size:13px; color:var(--muted); padding:10px 2px; }
   .h-callbar { background:rgba(200,240,75,.18); border:1px solid rgba(120,160,30,.35); border-radius:10px; padding:9px 12px; font-size:13px; margin-bottom:9px; color:var(--lime-ink); font-weight:600; }
   .h-upl { font-size:12px; color:var(--blue); margin-top:6px; }
+  .hcard.compact { padding:10px 14px; margin-bottom:6px; }
+  .hcard.compact > :not(.h-title) { display:none; }
+  .h-title.tog { cursor:pointer; display:flex; align-items:baseline; gap:6px; }
+  .h-title.tog .car { color:var(--muted); font-size:12px; width:12px; flex-shrink:0; }
+  .h-title .hint { margin-left:auto; font-size:12px; color:var(--muted); font-weight:500; white-space:nowrap; padding-left:8px; }
   .pr { padding:2px 8px; border-radius:20px; font-size:11px; font-weight:800; letter-spacing:.02em; }
   .pr-sos { background:#d7261e; color:#fff; }
   .pr-high { background:rgba(230,120,20,.18); color:#b35a00; }
@@ -744,6 +749,8 @@ async function autoLogin() {
   }
 }
 /* ---------- Sdílená nástěnka Jiří × Honza ---------- */
+let HEXP = new Set();
+function hExp(id){ if (HEXP.has(id)) HEXP.delete(id); else HEXP.add(id); if (HARCH) renderArch(); else renderH(); }
 let ROLE = 'JNO', HDATA = null, HSEEN = null, HOPEN = new Set(), HMORE = {}, HPEND = {};
 const H_OTHER = () => ROLE === 'JNO' ? 'Honza' : 'JNO';
 const H_NAME = (a) => a === 'JNO' ? 'Jiří' : a;
@@ -822,9 +829,12 @@ function hCard(it, opts = {}) {
       <label>Popis</label><textarea id="heb-${it.id}" rows="3">${esc(it.body||'')}</textarea>
       <div class="h-row2"><div><label>Priorita</label><br>${hPrSel('hep-'+it.id, it.priority)}</div><div><label>Termín</label><br><input type="date" id="hed-${it.id}" value="${it.due_date||''}"></div></div>
       <div class="edit-btns"><button class="btn-save" onclick="hSaveEdit('${it.id}')">Uložit</button><button class="btn-cancel" onclick="document.getElementById('hef-${it.id}').classList.remove('show')">Zrušit</button></div></div>`;
-  const cls = ['hcard', 'st-'+it.status, it.priority==='sos'?'p-sos':'', opts.focus?'focus':'', closed?'closed':'', HOPEN.has(it.id)?'open':''].join(' ');
+  const coll = ['schuzka','napad'].includes(it.section);
+  const expd = !coll || HEXP.has(it.id) || !!HPEND[it.id];
+  const hint = coll ? `<span class="hint">${fl.length?'📎'+fl.length+' ':''}${ncom?'💬'+ncom+' ':''}${it.seen_honza_at?'👀':''}</span>` : '';
+  const cls = [coll && !expd ? 'compact' : '', 'hcard', 'st-'+it.status, it.priority==='sos'?'p-sos':'', opts.focus?'focus':'', closed?'closed':'', HOPEN.has(it.id)?'open':''].join(' ');
   return `<div class="${cls}" id="hcard-${it.id}" ondragover="hDrag(event,this,true)" ondragleave="hDrag(event,this,false)" ondrop="hDrop(event,'${it.id}',this)">
-    <div class="h-title">${isNew?'<span class="badge b-new" style="margin-right:6px">NOVÉ</span>':''}${esc(it.title)}</div>
+    <div class="h-title${coll?' tog':''}"${coll?` onclick="hExp('${it.id}')"`:''}>${coll?`<span class="car">${expd?'▾':'▸'}</span>`:''}<span>${isNew?'<span class="badge b-new" style="margin-right:6px">NOVÉ</span>':''}${esc(it.title)}</span>${expd?'':hint}</div>
     ${it.body?`<div class="h-body">${esc(it.body)}</div>`:''}
     <div class="h-meta">${pr}${st}${due}${seen}${by}${(cm.length && !HOPEN.has(it.id))?`<button class="t-quote-toggle" onclick="hToggle('${it.id}')">historie (${cm.length})</button>`:''}</div>
     ${files}<div class="h-upl" id="hup-${it.id}"></div>
@@ -937,6 +947,7 @@ async function hReload() {
   try { HDATA = await call({ action:'sh_list' }); renderH(); } catch(e) { toast('Chyba: ' + e.message); }
 }
 function hToggle(id, focus) {
+  HEXP.add(id);
   if (HOPEN.has(id) && !focus) HOPEN.delete(id); else HOPEN.add(id);
   renderH();
   if (focus) { const t = document.getElementById('hc-' + id); if (t) t.focus(); }
