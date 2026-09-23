@@ -239,6 +239,7 @@ async function detectRole() {
   const w = await call({action:'whoami'});
   ROLE = w.role || 'JNO';
   const hadd = document.getElementById('haddwrap'); if (hadd && !hadd.innerHTML) hadd.innerHTML = hAddForm();
+  if (ROLE === 'JNO' && !document.getElementById('harchbtn')) { const tb = document.querySelector('#viewH .toolbar'); const b = document.createElement('button'); b.className = 'btn-ghost'; b.id = 'harchbtn'; b.textContent = '🗄 Archiv'; b.onclick = hArchToggle; b.style.marginRight = '8px'; tb.lastElementChild.before(b); }
   if (ROLE === 'Honza') {
     document.querySelector('#app .tabs').style.display = 'none';
     document.querySelector('#app h1').innerHTML = '<span class="dot"></span>Jiří × Honza';
@@ -752,7 +753,7 @@ function hPrSel(prefix, cur){ return `<div class="prsel" id="${prefix}" data-v="
 function hPickPr(prefix, p){ const el = document.getElementById(prefix); const was = el.dataset.v === p; el.dataset.v = was ? '' : p; el.querySelectorAll('.fchip').forEach(b => b.classList.toggle('on', !was && b.dataset.p === p)); }
 function hPrReset(prefix){ const el = document.getElementById(prefix); if (!el) return; el.dataset.v = ''; el.querySelectorAll('.fchip').forEach(b => b.classList.remove('on')); }
 function hPrGet(prefix){ const el = document.getElementById(prefix); return el ? (el.dataset.v || null) : null; }
-const H_ST = { nove:'nové', beru:'Beru', nejasne:'Nejasné', hotovo:'Hotovo', potvrzeno:'Potvrzeno', probrano:'Probráno' };
+const H_ST = { nove:'nové', beru:'Beru', nejasne:'Nejasné', hotovo:'Hotovo', potvrzeno:'Potvrzeno', probrano:'Probráno', archiv:'Archiv' };
 function hSeenKey(){ return 'shSeen_' + ROLE; }
 function hLoadSeen(){ if (HSEEN !== null) return; try { HSEEN = localStorage.getItem(hSeenKey()) || '1970-01-01'; } catch(_) { HSEEN = '1970-01-01'; } }
 function hMarkSeen(){ const now = new Date().toISOString(); try { localStorage.setItem(hSeenKey(), now); } catch(_) {} }
@@ -779,12 +780,13 @@ function hDueSort(a, b){
 
 function hCard(it, opts = {}) {
   const cm = hComments(it.id), fl = hFiles(it.id);
-  const closed = ['potvrzeno','probrano'].includes(it.status);
+  const closed = ['potvrzeno','probrano','archiv'].includes(it.status);
   const ncom = cm.filter(c => c.kind === 'komentar').length;
   const isNew = !closed && hIsNew(it);
   const due = it.due_date ? `<span class="badge b-due">do ${fmtDate(it.due_date)}</span>` : '';
   const st = it.section === 'ukol' || closed ? `<span class="badge b-st b-st-${it.status}">${H_ST[it.status]||it.status}</span>` : '';
   const pr = it.priority ? `<span class="pr pr-${it.priority}">${H_PR[it.priority]}</span>` : '';
+  const seen = it.seen_honza_at ? `<span class="badge b-st" title="Honza označil, že viděl">👀 viděl ${hWhen(it.seen_honza_at)}</span>` : '';
   const by = `<span>${H_NAME(it.created_by)} · ${hWhen(it.created_at)}</span>`;
   let acts = '';
   if (!closed) {
@@ -794,6 +796,8 @@ function hCard(it, opts = {}) {
       acts += `<button class="hb hb-beru${it.status==='beru'?' on':''}" onclick="hStatus('${it.id}','beru')">👍 Beru</button>`;
       acts += `<button class="hb hb-nej${it.status==='nejasne'?' on':''}" onclick="hPend('${it.id}','nejasne')">❓ Nejasné</button>`;
       acts += `<button class="hb hb-hot${it.status==='hotovo'?' on':''}" onclick="hPend('${it.id}','hotovo')">✓ Hotovo</button>`;
+    } else if (ROLE === 'Honza') {
+      acts += `<button class="hb hb-beru${it.seen_honza_at?' on':''}" onclick="hSeen('${it.id}')">👀 ${it.seen_honza_at?'Viděl ✓':'Viděl jsem'}</button>`;
     } else if (it.section === 'napad') {
       acts += `<button class="hb" onclick="hMove('${it.id}','schuzka')">→ Na schůzku</button>`;
       acts += `<button class="hb" onclick="hMove('${it.id}','ukol')">→ Do TO DO</button>`;
@@ -804,14 +808,13 @@ function hCard(it, opts = {}) {
     }
     acts += `<button class="hb hb-ghost" onclick="hToggle('${it.id}', true)">💬 Komentář${ncom?' ('+ncom+')':''}</button>`;
     acts += `<label class="hb hb-ghost" title="Přiložit soubor (nebo přetáhni soubor na kartu)">📎<input type="file" multiple style="display:none" onchange="hUpload('${it.id}', Array.from(this.files)); this.value=''"></label>`;
-    acts += `<button class="hb hb-ghost" title="Upravit (název, popis, priorita, termín)" onclick="hEdit('${it.id}')">✎</button>`;
-    if (ROLE === 'JNO') acts += `<button class="hb hb-ghost" title="Smazat" onclick="hArchive('${it.id}')">🗑</button>`;
+    if (ROLE === 'JNO') acts += `<button class="hb hb-ghost" title="Upravit (název, popis, priorita, termín)" onclick="hEdit('${it.id}')">✎</button><button class="hb hb-ghost" title="Archivovat (zůstane v databázi, najdeš v 🗄 Archivu)" onclick="hArchive('${it.id}')">🗄</button>`;
   } else if (ROLE === 'JNO') {
-    acts += `<button class="hb hb-ghost" onclick="hStatus('${it.id}','${it.section==='schuzka'?'nove':'beru'}')">↩ Znovu otevřít</button>`;
+    acts += `<button class="hb hb-ghost" onclick="hStatus('${it.id}','${it.section==='ukol'?'beru':'nove'}')">↩ Znovu otevřít</button>`;
   }
   const pend = HPEND[it.id];
   const pendBox = pend ? `<div class="h-input"><textarea id="hpn-${it.id}" placeholder="${esc(pend.ph)}"></textarea><button class="hb hb-ok" onclick="hPendSave('${it.id}')">Uložit</button><button class="hb hb-ghost" onclick="delete HPEND['${it.id}']; renderH()">✕</button></div>` : '';
-  const files = fl.length ? `<div class="h-files">${fl.map(f => `<span class="fchip2" onclick="hDownload('${f.id}')" title="${esc(f.name)} · nahrál ${H_NAME(f.uploaded_by)} ${hWhen(f.created_at)}">📄 <span>${esc(f.name)}</span> <small style="color:var(--muted);font-weight:400">${hSize(f.size)}</small>${(ROLE==='JNO'||f.uploaded_by===ROLE)&&!closed?`<b class="x" onclick="event.stopPropagation(); hFileDel('${f.id}')">×</b>`:''}</span>`).join('')}</div>` : '';
+  const files = fl.length ? `<div class="h-files">${fl.map(f => `<span class="fchip2" onclick="hDownload('${f.id}')" title="${esc(f.name)} · nahrál ${H_NAME(f.uploaded_by)} ${hWhen(f.created_at)}">📄 <span>${esc(f.name)}</span> <small style="color:var(--muted);font-weight:400">${hSize(f.size)}</small>${ROLE==='JNO'&&!closed?`<b class="x" onclick="event.stopPropagation(); hFileDel('${f.id}')">×</b>`:''}</span>`).join('')}</div>` : '';
   const thread = `<div class="h-thread">${cm.map(c => `<div class="h-c ${c.kind==='stav'?'stav':''}"><span class="who">${H_NAME(c.author)}:</span> ${esc(c.text)}<span class="when">${hWhen(c.created_at)}</span></div>`).join('') || '<div class="h-c stav">Zatím bez komentářů.</div>'}
     ${closed ? '' : `<div class="h-input"><textarea id="hc-${it.id}" placeholder="Napiš komentář…"></textarea><button class="hb hb-ok" onclick="hComment('${it.id}')">Odeslat</button></div>`}</div>`;
   const edit = `<div class="edit-form" id="hef-${it.id}">
@@ -823,7 +826,7 @@ function hCard(it, opts = {}) {
   return `<div class="${cls}" id="hcard-${it.id}" ondragover="hDrag(event,this,true)" ondragleave="hDrag(event,this,false)" ondrop="hDrop(event,'${it.id}',this)">
     <div class="h-title">${isNew?'<span class="badge b-new" style="margin-right:6px">NOVÉ</span>':''}${esc(it.title)}</div>
     ${it.body?`<div class="h-body">${esc(it.body)}</div>`:''}
-    <div class="h-meta">${pr}${st}${due}${by}${(cm.length && !HOPEN.has(it.id))?`<button class="t-quote-toggle" onclick="hToggle('${it.id}')">historie (${cm.length})</button>`:''}</div>
+    <div class="h-meta">${pr}${st}${due}${seen}${by}${(cm.length && !HOPEN.has(it.id))?`<button class="t-quote-toggle" onclick="hToggle('${it.id}')">historie (${cm.length})</button>`:''}</div>
     ${files}<div class="h-upl" id="hup-${it.id}"></div>
     ${acts?`<div class="h-actions">${acts}</div>`:''}${pendBox}${edit}${thread}</div>`;
 }
@@ -909,7 +912,28 @@ async function hAdd() {
   } catch(e) { toast('Chyba: ' + e.message); }
   btn.disabled = false; btn.textContent = 'Přidat';
 }
+async function hSeen(id) {
+  try { const r = await call({ action:'sh_seen', id }); if (r.error) throw new Error(r.error); toast('👀 Označeno'); await hReload(); }
+  catch(e) { toast('Chyba: ' + e.message); }
+}
+let HARCH = null, HARCH_Q = '';
+async function hArchToggle() {
+  if (HARCH) { HARCH = null; document.getElementById('harchbtn').textContent = '🗄 Archiv'; renderH(); return; }
+  try { const d = await call({ action:'sh_archive_list' }); if (d.error) throw new Error(d.error); HARCH = d; document.getElementById('harchbtn').textContent = '← Zpět na nástěnku'; renderArch(); }
+  catch(e) { toast('Chyba: ' + e.message); }
+}
+function renderArch() {
+  const el = document.getElementById('hblocks'); const q = HARCH_Q.toLowerCase();
+  const saved = HDATA; HDATA = { items: HARCH.items, comments: HARCH.comments, files: (HARCH.files||[]).filter(f => !f.deleted_at) };
+  const items = HARCH.items.filter(i => !q || (i.title + ' ' + (i.body||'') + ' ' + HARCH.comments.filter(c => c.item_id === i.id).map(c => c.text).join(' ')).toLowerCase().includes(q));
+  const SL = { ukol:'TO DO', napad:'Nápad', schuzka:'Schůzka' };
+  el.innerHTML = `<div class="hsec"><div class="hsec-head"><div class="hsec-title">🗄 Archiv</div><div class="hsec-meta">${items.length} z ${HARCH.items.length} · vše zůstává v databázi</div></div>
+    <input type="search" id="harchq" placeholder="Hledat v názvu, popisu i komentářích…" value="${esc(HARCH_Q)}" oninput="HARCH_Q=this.value;renderArch();const e=document.getElementById('harchq');e.focus();e.setSelectionRange(e.value.length,e.value.length)" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card);font-size:14px;margin-bottom:10px">
+    ${items.map(i => `<div class="hsec-meta" style="margin:8px 2px 3px">${SL[i.section]||''} · uzavřeno ${hWhen(i.closed_at)}</div>` + hCard(i)).join('') || '<div class="h-empty">Nic nenalezeno.</div>'}</div>`;
+  HDATA = saved;
+}
 async function hReload() {
+  if (HARCH) { try { const d = await call({ action:'sh_archive_list' }); HARCH = d; HDATA = await call({ action:'sh_list' }); renderArch(); } catch(e) { toast('Chyba: ' + e.message); } return; }
   try { HDATA = await call({ action:'sh_list' }); renderH(); } catch(e) { toast('Chyba: ' + e.message); }
 }
 function hToggle(id, focus) {
@@ -941,7 +965,7 @@ async function hArchive(id) {
   await hStatus(id, 'archiv');
 }
 const HDEL = {};
-function confirmInline(id) { if (HDEL[id]) { delete HDEL[id]; return true; } HDEL[id] = 1; toast('Klikni na 🗑 znovu pro smazání'); setTimeout(() => delete HDEL[id], 3000); return false; }
+function confirmInline(id) { if (HDEL[id]) { delete HDEL[id]; return true; } HDEL[id] = 1; toast('Klikni znovu pro potvrzení'); setTimeout(() => delete HDEL[id], 3000); return false; }
 function hEdit(id) { document.getElementById('hef-' + id).classList.toggle('show'); }
 async function hSaveEdit(id) {
   try {
