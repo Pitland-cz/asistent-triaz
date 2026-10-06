@@ -96,6 +96,32 @@
   #toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--card2); border:1px solid var(--border); color:var(--text); padding:10px 18px; border-radius:10px; font-size:13px; opacity:0; transition:opacity .3s; pointer-events:none; z-index:9; }
   #toast.show { opacity:1; }
   .spin { text-align:center; color:var(--muted); padding:40px; }
+  /* ---------- Dotazy k nahrávkám ---------- */
+  .qrec { background:var(--card); border:1px solid var(--border); border-radius:14px; margin-bottom:16px; overflow:hidden; }
+  .qrec-head { padding:12px 16px; background:var(--card2); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+  .qrec-title { font-size:14px; font-weight:700; line-height:1.4; }
+  .qrec-meta { font-size:12px; color:var(--muted); margin-top:3px; }
+  .qrec-sum { display:none; padding:10px 16px; font-size:12.5px; color:var(--muted); border-bottom:1px solid var(--border); line-height:1.5; white-space:pre-wrap; max-height:220px; overflow:auto; }
+  .qrec.open .qrec-sum { display:block; }
+  .q { padding:12px 16px; border-bottom:1px solid var(--border); }
+  .q:last-child { border-bottom:none; }
+  .q-kind { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:700; margin-right:6px; background:rgba(60,100,190,.12); color:#2d5da8; }
+  .q-kind.k-mluvci { background:rgba(170,215,60,.22); color:var(--lime-ink); }
+  .q-kind.k-scope, .q-kind.k-typ { background:rgba(208,138,30,.15); color:#9a6413; }
+  .q-kind.k-poznamka_jno { background:rgba(128,128,128,.15); color:var(--muted); }
+  .q-text { font-size:14px; line-height:1.45; margin:4px 0; }
+  .q-ctx { font-size:12px; color:var(--muted); margin:4px 0 6px; font-style:italic; border-left:2px solid var(--border); padding-left:8px; }
+  .q-sugg { font-size:12.5px; margin:4px 0 8px; } .q-sugg b { color:var(--lime-ink); }
+  .q-opts { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+  .q-input { display:flex; gap:8px; align-items:flex-start; }
+  .q-input textarea { flex:1; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:9px; font-size:14px; font-family:inherit; resize:vertical; min-height:42px; }
+  .q-input textarea:focus { outline:none; border-color:var(--lime); }
+  .q-ans { font-size:13px; margin-top:6px; padding:8px 10px; background:rgba(200,240,75,.12); border-radius:8px; }
+  .q-ans .lbl { font-size:11px; color:var(--muted); font-weight:700; letter-spacing:.3px; }
+  .q-applied { background:rgba(31,111,191,.08); }
+  .q.done { opacity:.75; }
+  .q-foot { font-size:11px; color:var(--muted); margin-top:4px; }
+
   .tabs { flex-wrap:wrap; }
   .hsec { margin-bottom:22px; }
   .hsec-head { display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin:0 2px 8px; }
@@ -184,6 +210,7 @@
     <button class="tab" id="tabU" onclick="showTab('U')">Úkoly <span id="cntU"></span></button>
     <button class="tab" id="tabP" onclick="showTab('P')">Projekty <span id="cntP"></span></button>
     <button class="tab" id="tabL" onclick="showTab('L')">Trello <span id="cntL"></span></button>
+    <button class="tab" id="tabQ" onclick="showTab('Q')">❓ Dotazy <span id="cntQ"></span></button>
     <button class="tab" id="tabH" onclick="showTab('H')">🤝 Honza <span id="cntH"></span></button>
   </div>
 
@@ -220,6 +247,13 @@
     <div class="toolbar"><div class="count">Událostí: <b id="cntLE">–</b></div><button class="btn-ghost" onclick="loadAll()">↻ Obnovit</button></div>
     <div id="lblocks"><div class="spin">Načítám…</div></div>
     <div id="emptyL" style="text-align:center;padding:60px 20px;color:var(--muted);display:none"><div class="big">📋</div>Zatím žádné zaznamenané změny — evidence začala 17. 8. 2026.</div>
+  </div>
+  <div id="viewQ" style="display:none">
+    <p class="sub">Doplňující dotazy asistenta k nahrávkám (mluvčí, zařazení, obsah). Odpověz volným textem — nejbližší běh asistenta odpověď zpracuje a propíše do nahrávky, přepisu a úkolů. ✗ = dotaz zahodit. Vlastní poznámku k nahrávce přidáš přes „+ poznámka".</p>
+    <div class="toolbar"><div class="count">Otevřené dotazy: <b id="cntQO">–</b> <span id="cntQA" style="margin-left:10px"></span></div><div><button class="btn-ghost" onclick="qAddOpen()">+ poznámka k nahrávce</button> <button class="btn-ghost" onclick="qReload()">↻ Obnovit</button></div></div>
+    <div id="qadd" style="display:none" class="qrec"><div class="qrec-head"><div class="qrec-title">Poznámka k nahrávce</div></div><div class="q"><input id="qadd-search" placeholder="hledat nahrávku podle názvu…" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-size:14px;margin-bottom:8px" oninput="qAddSearch()"><div id="qadd-list" class="q-opts"></div><div id="qadd-sel" class="q-sugg"></div><div class="q-input"><textarea id="qadd-text" placeholder="co má asistent u této nahrávky vědět / opravit…"></textarea><button class="hb hb-ok" onclick="qAddSave()">Uložit</button><button class="hb hb-ghost" onclick="document.getElementById('qadd').style.display='none'">zrušit</button></div></div></div>
+    <div id="qblocks"><div class="spin">Načítám…</div></div>
+    <div id="emptyQ" style="text-align:center;padding:60px 20px;color:var(--muted);display:none"><div class="big">🙌</div>Žádné otevřené dotazy.</div>
   </div>
   <div id="viewH" style="display:none">
     <p class="sub" id="hsub">Společná nástěnka Jiří × Honza. U TO DO: 👍 Beru · ❓ Nejasné · ✓ Hotovo · 💬 Komentář. Soubor stačí přetáhnout na kartu (nebo 📎).</p>
@@ -272,7 +306,7 @@ function todayISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.get
 
 function showTab(t) {
   if (t==='H') { hLoadSeen(); hMarkSeen(); }
-  for (const x of ['D','T','U','P','L','H']) {
+  for (const x of ['D','T','U','P','L','Q','H']) {
     document.getElementById('tab'+x).classList.toggle('active', t===x);
     document.getElementById('view'+x).style.display = t===x ? 'block' : 'none';
   }
@@ -290,6 +324,7 @@ async function loadAll(throwErr) {
     toast('Chyba: ' + e.message); return;
   }
   renderT(); renderU(); renderP(); renderL(); renderD();
+  qReload(true);
   if (firstLoad) { firstLoad = false; if (BDATA && BDATA.brief && BDATA.brief.brief_date === todayISO()) showTab('D'); }
   document.getElementById('cntT').textContent = '(' + (DATA.tasks||[]).length + ')';
   document.getElementById('cntU').textContent = '(' + (ODATA.tasks||[]).length + ')';
@@ -839,6 +874,91 @@ function hCard(it, opts = {}) {
     <div class="h-meta">${pr}${st}${due}${seen}${by}${(cm.length && !HOPEN.has(it.id))?`<button class="t-quote-toggle" onclick="hToggle('${it.id}')">historie (${cm.length})</button>`:''}</div>
     ${files}<div class="h-upl" id="hup-${it.id}"></div>
     ${acts?`<div class="h-actions">${acts}</div>`:''}${pendBox}${edit}${thread}</div>`;
+}
+
+
+/* ---------- Dotazy k nahrávkám ---------- */
+let QDATA = null, QOPEN = new Set(), QADD_REC = null;
+function qKindLabel(k){ return ({mluvci:'mluvčí', scope:'zařazení', typ:'typ', projekt:'projekt', obsah:'obsah', ukol:'úkol', poznamka_jno:'poznámka JNO', jine:'jiné'})[k] || k; }
+function qFmt(d){ if(!d) return ''; const x=new Date(d); return x.getDate()+'. '+(x.getMonth()+1)+'. '+String(x.getHours()).padStart(2,'0')+':'+String(x.getMinutes()).padStart(2,'0'); }
+async function qReload(silent) {
+  try { QDATA = await call({action:'rq_list'}); if (QDATA.error) throw new Error(QDATA.error); }
+  catch(e) { if (!silent) toast('Chyba: ' + e.message); return; }
+  renderQ();
+}
+function renderQ() {
+  const el = document.getElementById('qblocks'); if (!QDATA) return;
+  const qs = QDATA.questions || [], recs = {}; for (const r of (QDATA.recordings||[])) recs[r.recording_id] = r;
+  const open = qs.filter(q => q.status === 'open').length, ans = qs.filter(q => q.status === 'answered').length;
+  document.getElementById('cntQO').textContent = open;
+  document.getElementById('cntQA').textContent = ans ? ('· čeká na zpracování: ' + ans) : '';
+  document.getElementById('cntQ').textContent = open ? '(' + open + ')' : '';
+  document.getElementById('emptyQ').style.display = qs.length ? 'none' : 'block';
+  const groups = {}; const order = [];
+  for (const q of qs) { if (!groups[q.recording_id]) { groups[q.recording_id] = []; order.push(q.recording_id); } groups[q.recording_id].push(q); }
+  order.sort((a,b) => { const oa = groups[a].some(q=>q.status==='open')?0:1, ob = groups[b].some(q=>q.status==='open')?0:1; if (oa!==ob) return oa-ob; const pa = Math.min(...groups[a].filter(q=>q.status==='open').map(q=>q.priority||3), 9), pb = Math.min(...groups[b].filter(q=>q.status==='open').map(q=>q.priority||3), 9); if (pa!==pb) return pa-pb; const ra=recs[a]||{}, rb=recs[b]||{}; return (rb.recorded_at||'').localeCompare(ra.recorded_at||''); });
+  el.innerHTML = order.map(rid => {
+    const r = recs[rid] || {}; const list = groups[rid];
+    const nOpen = list.filter(q=>q.status==='open').length;
+    const head = `<div class="qrec-head"><div><div class="qrec-title">${esc(r.title || rid)}</div><div class="qrec-meta">${r.recorded_at ? qFmt(r.recorded_at) : ''}${r.duration_sec ? ' · ' + Math.round(r.duration_sec/60) + ' min' : ''}${r.scope ? ' · ' + esc(r.scope) : ''} · ${nOpen} otevřen${nOpen===1?'ý':(nOpen>=2&&nOpen<=4?'é':'ých')} z ${list.length}</div></div><div><button class="hb hb-ghost" onclick="qToggleSum('${rid}')" title="shrnutí nahrávky">ℹ︎</button> <button class="hb hb-ghost" onclick="qAddOpen('${rid}')" title="přidat poznámku">+</button></div></div>`;
+    const sum = `<div class="qrec-sum">${esc((r.summary_md||'').replace(/^#+ .*$/mg,'').trim() || '— bez shrnutí —')}</div>`;
+    return `<div class="qrec ${QOPEN.has(rid)?'open':''}" id="qrec-${rid}">${head}${sum}${list.map(qCard).join('')}</div>`;
+  }).join('');
+}
+function qCard(q) {
+  const kind = `<span class="q-kind k-${q.kind}">${qKindLabel(q.kind)}</span>${(q.priority||3) <= 2 ? '<span class="q-kind" style="background:rgba(192,68,47,.12);color:var(--red)">P' + q.priority + '</span>' : ''}`;
+  const ctx = q.context ? `<div class="q-ctx">${esc(q.context)}</div>` : '';
+  const sugg = q.suggestion ? `<div class="q-sugg">Návrh asistenta: <b>${esc(q.suggestion)}</b> <button class="hb hb-ghost" style="padding:3px 8px;font-size:12px" onclick="qAnswer('${q.id}', ${JSON.stringify(q.suggestion).replace(/"/g,'&quot;')})">✓ ano, takhle</button></div>` : '';
+  const opts = (q.options && q.options.length) ? `<div class="q-opts">${q.options.map(o => `<button class="hb" style="padding:5px 10px;font-size:12px" onclick="qAnswer('${q.id}', ${JSON.stringify(String(o)).replace(/"/g,'&quot;')})">${esc(String(o))}</button>`).join('')}</div>` : '';
+  if (q.status === 'open') {
+    return `<div class="q" id="q-${q.id}">${kind}<span class="q-foot">${qFmt(q.created_at)}${q.created_by ? ' · ' + esc(q.created_by) : ''}</span><div class="q-text">${esc(q.question)}</div>${ctx}${sugg}${opts}
+      <div class="q-input"><textarea id="qa-${q.id}" placeholder="odpověď volným textem… (Enter = odeslat, Shift+Enter = nový řádek)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();qAnswer('${q.id}')}"></textarea><button class="hb hb-ok" onclick="qAnswer('${q.id}')">Odpovědět</button><button class="hb hb-ghost" title="zahodit dotaz (nebude se řešit)" onclick="qDismiss('${q.id}')">✗</button></div></div>`;
+  }
+  const st = q.status === 'answered' ? '⏳ čeká na zpracování asistentem' : (q.status === 'applied' ? '✅ zpracováno ' + qFmt(q.applied_at) : '✗ zahozeno');
+  return `<div class="q done ${q.status==='applied'?'q-applied':''}" id="q-${q.id}">${kind}<span class="q-foot">${st}</span><div class="q-text">${esc(q.question)}</div>
+    ${q.answer_text ? `<div class="q-ans"><div class="lbl">TVOJE ODPOVĚĎ</div>${esc(q.answer_text)}</div>` : ''}
+    ${q.apply_note ? `<div class="q-ans" style="background:rgba(31,111,191,.08)"><div class="lbl">CO ASISTENT UDĚLAL</div>${esc(q.apply_note)}</div>` : ''}
+    <div class="q-foot"><button class="undo" onclick="qReopen('${q.id}')">znovu otevřít</button></div></div>`;
+}
+function qToggleSum(rid){ if (QOPEN.has(rid)) QOPEN.delete(rid); else QOPEN.add(rid); document.getElementById('qrec-'+rid).classList.toggle('open'); }
+async function qAnswer(id, text) {
+  const ta = document.getElementById('qa-' + id);
+  const answer = (text !== undefined ? text : (ta ? ta.value : '')).trim();
+  if (!answer) { toast('Napiš odpověď'); return; }
+  try { const r = await call({ action:'rq_answer', id, answer_text: answer }); if (r.error) throw new Error(r.error); toast('Odpověď uložena ✓ — zpracuje nejbližší běh'); await qReload(); }
+  catch(e) { toast('Chyba: ' + e.message); }
+}
+async function qDismiss(id) {
+  const ta = document.getElementById('qa-' + id);
+  try { const r = await call({ action:'rq_dismiss', id, answer_text: ta ? ta.value : '' }); if (r.error) throw new Error(r.error); toast('Zahozeno'); await qReload(); }
+  catch(e) { toast('Chyba: ' + e.message); }
+}
+async function qReopen(id) {
+  try { const r = await call({ action:'rq_reopen', id }); if (r.error) throw new Error(r.error); await qReload(); }
+  catch(e) { toast('Chyba: ' + e.message); }
+}
+function qAddOpen(rid) {
+  const box = document.getElementById('qadd'); box.style.display = 'block'; QADD_REC = null;
+  document.getElementById('qadd-text').value = ''; document.getElementById('qadd-list').innerHTML = ''; document.getElementById('qadd-sel').innerHTML = '';
+  if (rid && QDATA) { const r = (QDATA.recordings||[]).find(x => x.recording_id === rid); if (r) qAddPick(rid, r.title); }
+  else { document.getElementById('qadd-search').value = ''; qAddSearch(); }
+  box.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+let qSearchT = null;
+function qAddSearch() {
+  clearTimeout(qSearchT);
+  qSearchT = setTimeout(async () => {
+    const term = document.getElementById('qadd-search').value;
+    try { const r = await call({ action:'rq_search_recordings', q: term }); document.getElementById('qadd-list').innerHTML = (r.recordings||[]).map(x => `<button class="hb" style="padding:5px 10px;font-size:12px;text-align:left" onclick="qAddPick('${x.recording_id}', ${JSON.stringify(x.title||'').replace(/"/g,'&quot;')})">${qFmt(x.recorded_at)} · ${esc((x.title||'').slice(0,70))}</button>`).join(''); }
+    catch(e) {}
+  }, 250);
+}
+function qAddPick(rid, title) { QADD_REC = rid; document.getElementById('qadd-sel').innerHTML = 'Nahrávka: <b>' + esc(title) + '</b>'; document.getElementById('qadd-list').innerHTML = ''; document.getElementById('qadd-text').focus(); }
+async function qAddSave() {
+  const text = document.getElementById('qadd-text').value.trim();
+  if (!QADD_REC) { toast('Vyber nahrávku'); return; } if (!text) { toast('Napiš poznámku'); return; }
+  try { const r = await call({ action:'rq_add', recording_id: QADD_REC, text }); if (r.error) throw new Error(r.error); toast('Poznámka uložena ✓'); document.getElementById('qadd').style.display = 'none'; await qReload(); }
+  catch(e) { toast('Chyba: ' + e.message); }
 }
 
 function renderH() {
