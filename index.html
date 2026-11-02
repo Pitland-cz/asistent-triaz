@@ -275,7 +275,7 @@
     <div id="emptyQ" style="text-align:center;padding:60px 20px;color:var(--muted);display:none"><div class="big">🙌</div>Žádné otevřené dotazy.</div>
   </div>
   <div id="viewF" style="display:none">
-    <p class="sub">Zpětná vazba na tebe po schůzkách, které vedeš (1:1, porady, jednání ≥ 20 min). Píše ji asistent z celého přepisu ve stálém rámci. 👍 beru · 🤔 nesouhlasím (+ proč — asistent to příště zohlední) · ✓ přečteno · 🗄 archiv.</p>
+    <p class="sub">Zpětná vazba na tebe po schůzkách, které vedeš (1:1, porady, jednání ≥ 20 min). Píše ji asistent z celého přepisu ve stálém rámci. <b>👍 Beru</b> = závazek: příští zpětná vazba u stejného člověka zkontroluje, jestli jsi „Na příště" dodržel. <b>✓ Přečteno</b> = viděl jsem, bez závazku. <b>🤔 Nesouhlasím</b> + proč = asistent stejnou výtku nezopakuje. 🗄 = archiv.</p>
     <div class="frow" id="ffilters"></div>
     <div class="toolbar"><div class="count">Nových: <b id="cntFN">–</b> <span id="fstat" style="margin-left:10px"></span></div><div><button class="btn-ghost" id="farchbtn" onclick="fArchToggle()">🗄 Archiv</button> <button class="btn-ghost" onclick="fReload()">↻ Obnovit</button></div></div>
     <div id="fblocks"><div class="spin">Načítám…</div></div>
@@ -1013,7 +1013,7 @@ function fMd(md) {
   flush(); if (buf.length) out.push(mdToHtml(buf.join('\n')));
   return out.join('\n');
 }
-const F_ST = { nova:'nová', prectena:'✓ přečteno', beru:'👍 beru', nesouhlas:'🤔 nesouhlasím', archiv:'🗄 archiv' };
+const F_ST = { nova:'nová', prectena:'✓ přečteno', beru:'👍 beru – hlídá se', nesouhlas:'🤔 nesouhlasím', archiv:'🗄 archiv' };
 function renderF() {
   if (!FDATA) return;
   const recs = {}; for (const r of (FDATA.recordings||[])) recs[r.recording_id] = r;
@@ -1035,7 +1035,7 @@ function renderF() {
     const note = `<div class="fb-note" id="fn-${f.id}" style="display:none"><textarea id="fnt-${f.id}" placeholder="s čím nesouhlasíš / co asistent vidí špatně… (zohlední to u další zpětné vazby)">${esc(f.jno_note||'')}</textarea><div class="fb-act"><button class="hb hb-ok" onclick="fSet('${f.id}','nesouhlas',true)">Uložit nesouhlas</button><button class="hb hb-ghost" onclick="document.getElementById('fn-${f.id}').style.display='none'">zrušit</button></div></div>`;
     const acts = f.status === 'archiv'
       ? `<button class="hb" onclick="fSet('${f.id}','prectena')">↩ vrátit z archivu</button>`
-      : `<button class="hb${f.status==='beru'?' on':''}" onclick="fSet('${f.id}','beru')">👍 Beru</button><button class="hb hb-nej${f.status==='nesouhlas'?' on':''}" onclick="document.getElementById('fn-${f.id}').style.display='block'">🤔 Nesouhlasím</button><button class="hb${f.status==='prectena'?' on':''}" onclick="fSet('${f.id}','prectena')">✓ Přečteno</button><button class="hb hb-ghost" onclick="fSet('${f.id}','archiv')">🗄</button>`;
+      : `<button class="hb${f.status==='beru'?' on':''}" title="závazek – příště se zkontroluje „Na příště“" onclick="fSet('${f.id}','beru')">👍 Beru</button><button class="hb hb-nej${f.status==='nesouhlas'?' on':''}" onclick="document.getElementById('fn-${f.id}').style.display='block'">🤔 Nesouhlasím</button><button class="hb${f.status==='prectena'?' on':''}" title="viděl jsem, bez závazku" onclick="fSet('${f.id}','prectena')">✓ Přečteno</button><button class="hb hb-ghost" onclick="fSet('${f.id}','archiv')">🗄</button>`;
     return `<div class="fb st-${f.status} ${FOPEN.has(f.id)?'open':''}" id="fb-${f.id}">
       <div class="fb-head" onclick="fToggle('${f.id}')"><div><div class="fb-who">${esc(f.osoba || '—')}</div><div class="fb-meta">${esc(meta)}</div></div><div style="display:flex;gap:6px;align-items:center">${pct}<span class="fb-pill">${F_ST[f.status]||f.status}</span></div></div>
       <div class="fb-verd">${esc(f.verdikt || '')}</div>
