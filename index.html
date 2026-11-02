@@ -150,6 +150,24 @@
   .hb-hot.on { background:var(--blue); border-color:var(--blue); color:#fff; }
   .hb-ghost { background:transparent; color:var(--muted); }
   .hb-ok { background:var(--lime); border-color:var(--lime); color:#111; }
+  .fb { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px 16px; margin-bottom:12px; }
+  .fb.st-nova { border-left:4px solid var(--lime); }
+  .fb-head { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; cursor:pointer; }
+  .fb-who { font-weight:700; font-size:15px; }
+  .fb-meta { color:var(--muted); font-size:12px; margin-top:2px; }
+  .fb-verd { margin-top:8px; font-size:14px; line-height:1.45; }
+  .fb-pill { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; background:var(--card2); color:var(--muted); white-space:nowrap; }
+  .fb-pill.hi { background:rgba(192,68,47,.12); color:var(--red); }
+  .fb-pill.ok { background:rgba(85,115,26,.14); color:var(--lime-ink); }
+  .fb-body { display:none; margin-top:10px; padding-top:10px; border-top:1px solid var(--border); }
+  .fb.open .fb-body { display:block; }
+  .fb.open .fb-verd { display:none; }
+  .fb-body table { border-collapse:collapse; font-size:13px; margin:6px 0 10px; }
+  .fb-body td, .fb-body th { border:1px solid var(--border); padding:4px 8px; text-align:left; }
+  .fb-act { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+  .fb-note { margin-top:8px; }
+  .fb-note textarea { width:100%; min-height:60px; padding:9px; border:1px solid var(--border); border-radius:8px; background:var(--bg); font-size:14px; font-family:inherit; }
+  .fb-jno { margin-top:8px; background:rgba(31,111,191,.08); border-radius:8px; padding:8px 10px; font-size:13px; }
   .h-files { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
   .fchip2 { display:inline-flex; align-items:center; gap:6px; background:rgba(31,111,191,.08); color:var(--blue); border:1px solid rgba(31,111,191,.25); border-radius:8px; padding:5px 9px; font-size:12px; font-weight:600; cursor:pointer; max-width:100%; }
   .fchip2 span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:220px; }
@@ -211,6 +229,7 @@
     <button class="tab" id="tabP" onclick="showTab('P')">Projekty <span id="cntP"></span></button>
     <button class="tab" id="tabL" onclick="showTab('L')">Trello <span id="cntL"></span></button>
     <button class="tab" id="tabQ" onclick="showTab('Q')">❓ Dotazy <span id="cntQ"></span></button>
+    <button class="tab" id="tabF" onclick="showTab('F')">🪞 Zpětná vazba <span id="cntF"></span></button>
     <button class="tab" id="tabH" onclick="showTab('H')">🤝 Honza <span id="cntH"></span></button>
   </div>
 
@@ -254,6 +273,13 @@
     <div id="qadd" style="display:none" class="qrec"><div class="qrec-head"><div class="qrec-title">Poznámka k nahrávce</div></div><div class="q"><input id="qadd-search" placeholder="hledat nahrávku podle názvu…" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-size:14px;margin-bottom:8px" oninput="qAddSearch()"><div id="qadd-list" class="q-opts"></div><div id="qadd-sel" class="q-sugg"></div><div class="q-input"><textarea id="qadd-text" placeholder="co má asistent u této nahrávky vědět / opravit…"></textarea><button class="hb hb-ok" onclick="qAddSave()">Uložit</button><button class="hb hb-ghost" onclick="document.getElementById('qadd').style.display='none'">zrušit</button></div></div></div>
     <div id="qblocks"><div class="spin">Načítám…</div></div>
     <div id="emptyQ" style="text-align:center;padding:60px 20px;color:var(--muted);display:none"><div class="big">🙌</div>Žádné otevřené dotazy.</div>
+  </div>
+  <div id="viewF" style="display:none">
+    <p class="sub">Zpětná vazba na tebe po schůzkách, které vedeš (1:1, porady, jednání ≥ 20 min). Píše ji asistent z celého přepisu ve stálém rámci. 👍 beru · 🤔 nesouhlasím (+ proč — asistent to příště zohlední) · ✓ přečteno · 🗄 archiv.</p>
+    <div class="frow" id="ffilters"></div>
+    <div class="toolbar"><div class="count">Nových: <b id="cntFN">–</b> <span id="fstat" style="margin-left:10px"></span></div><div><button class="btn-ghost" id="farchbtn" onclick="fArchToggle()">🗄 Archiv</button> <button class="btn-ghost" onclick="fReload()">↻ Obnovit</button></div></div>
+    <div id="fblocks"><div class="spin">Načítám…</div></div>
+    <div id="emptyF" style="text-align:center;padding:60px 20px;color:var(--muted);display:none"><div class="big">🪞</div>Zatím žádná zpětná vazba. Vzniká po zpracování nahrávky schůzky, kterou vedeš.</div>
   </div>
   <div id="viewH" style="display:none">
     <p class="sub" id="hsub">Společná nástěnka Jiří × Honza. U TO DO: 👍 Beru · ❓ Nejasné · ✓ Hotovo · 💬 Komentář. Soubor stačí přetáhnout na kartu (nebo 📎).</p>
@@ -306,7 +332,7 @@ function todayISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.get
 
 function showTab(t) {
   if (t==='H') { hLoadSeen(); hMarkSeen(); }
-  for (const x of ['D','T','U','P','L','Q','H']) {
+  for (const x of ['D','T','U','P','L','Q','F','H']) {
     document.getElementById('tab'+x).classList.toggle('active', t===x);
     document.getElementById('view'+x).style.display = t===x ? 'block' : 'none';
   }
@@ -325,6 +351,7 @@ async function loadAll(throwErr) {
   }
   renderT(); renderU(); renderP(); renderL(); renderD();
   qReload(true);
+  fReload(true);
   if (firstLoad) { firstLoad = false; if (BDATA && BDATA.brief && BDATA.brief.brief_date === todayISO()) showTab('D'); }
   document.getElementById('cntT').textContent = '(' + (DATA.tasks||[]).length + ')';
   document.getElementById('cntU').textContent = '(' + (ODATA.tasks||[]).length + ')';
@@ -958,6 +985,70 @@ async function qAddSave() {
   const text = document.getElementById('qadd-text').value.trim();
   if (!QADD_REC) { toast('Vyber nahrávku'); return; } if (!text) { toast('Napiš poznámku'); return; }
   try { const r = await call({ action:'rq_add', recording_id: QADD_REC, text }); if (r.error) throw new Error(r.error); toast('Poznámka uložena ✓'); document.getElementById('qadd').style.display = 'none'; await qReload(); }
+  catch(e) { toast('Chyba: ' + e.message); }
+}
+
+/* ---------- Zpětná vazba JNO na vedené schůzky (od 3. 11. 2026) ---------- */
+const FEP = 'https://dltopsftcmkxqrcobgrc.supabase.co/functions/v1/asist-zpetna-vazba';
+let FDATA = null, FOPEN = new Set(), FWHO = '', FARCH = false;
+async function fcall(payload) {
+  const r = await fetch(FEP, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ access: ACCESS, ...payload }) });
+  if (r.status === 401) throw new Error('unauthorized');
+  return r.json();
+}
+async function fReload(silent) {
+  try { FDATA = await fcall({ action:'fb_list', archiv: FARCH }); if (FDATA.error) throw new Error(FDATA.error); }
+  catch(e) { if (!silent) toast('Chyba: ' + e.message); return; }
+  renderF();
+}
+function fArchToggle(){ FARCH = !FARCH; document.getElementById('farchbtn').classList.toggle('on', FARCH); fReload(); }
+function fMd(md) {
+  const lines = (md||'').split('\n'); const out = []; let tbl = [];
+  const flush = () => { if (!tbl.length) return; const rows = tbl.filter(r => !/^\|\s*:?-{2,}/.test(r)); out.push('<table>' + rows.map((r,i) => '<tr>' + r.replace(/^\||\|$/g,'').split('|').map(c => { const v = esc(c.trim()).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>'); return i===0 ? '<th>'+v+'</th>' : '<td>'+v+'</td>'; }).join('') + '</tr>').join('') + '</table>'); tbl = []; };
+  const buf = [];
+  for (const ln of lines) {
+    if (/^\s*\|/.test(ln)) { if (buf.length) { out.push(mdToHtml(buf.join('\n'))); buf.length = 0; } tbl.push(ln.trim()); continue; }
+    flush(); buf.push(ln);
+  }
+  flush(); if (buf.length) out.push(mdToHtml(buf.join('\n')));
+  return out.join('\n');
+}
+const F_ST = { nova:'nová', prectena:'✓ přečteno', beru:'👍 beru', nesouhlas:'🤔 nesouhlasím', archiv:'🗄 archiv' };
+function renderF() {
+  if (!FDATA) return;
+  const recs = {}; for (const r of (FDATA.recordings||[])) recs[r.recording_id] = r;
+  const all = FDATA.feedback || [];
+  const nNew = all.filter(f => f.status === 'nova').length;
+  document.getElementById('cntFN').textContent = nNew;
+  document.getElementById('cntF').textContent = nNew ? '(' + nNew + ')' : '';
+  const shares = all.map(f => f.jno_share_pct).filter(x => x !== null && x !== undefined).map(Number);
+  document.getElementById('fstat').textContent = shares.length ? '· tvůj průměrný podíl mluvení: ' + Math.round(shares.reduce((a,b)=>a+b,0)/shares.length) + ' %' : '';
+  const who = [...new Set(all.map(f => f.osoba || '—'))].sort((a,b)=>a.localeCompare(b,'cs'));
+  document.getElementById('ffilters').innerHTML = [''].concat(who).map(w => `<button class="hb${FWHO===w?' on':''}" style="padding:5px 11px;font-size:12px" onclick="FWHO=${JSON.stringify(w).replace(/"/g,'&quot;')};renderF()">${w ? esc(w) + ' (' + all.filter(f => (f.osoba||'—')===w).length + ')' : 'Všichni'}</button>`).join('');
+  const list = all.filter(f => !FWHO || (f.osoba||'—') === FWHO);
+  document.getElementById('emptyF').style.display = list.length ? 'none' : 'block';
+  document.getElementById('fblocks').innerHTML = list.map(f => {
+    const r = recs[f.recording_id] || {};
+    const pct = (f.jno_share_pct === null || f.jno_share_pct === undefined) ? '' : `<span class="fb-pill ${Number(f.jno_share_pct) > 55 ? 'hi' : 'ok'}" title="tvůj podíl mluvení">🗣 ${Math.round(f.jno_share_pct)} %</span>`;
+    const dl = (f.dohody||[]).filter(d => !d.do_kdy).length;
+    const meta = [f.held_at ? qFmt(f.held_at) : '', f.meeting_type || '', r.duration_sec ? Math.round(r.duration_sec/60) + ' min' : '', dl ? '⚠️ ' + dl + ' dohod bez termínu' : ''].filter(Boolean).join(' · ');
+    const note = `<div class="fb-note" id="fn-${f.id}" style="display:none"><textarea id="fnt-${f.id}" placeholder="s čím nesouhlasíš / co asistent vidí špatně… (zohlední to u další zpětné vazby)">${esc(f.jno_note||'')}</textarea><div class="fb-act"><button class="hb hb-ok" onclick="fSet('${f.id}','nesouhlas',true)">Uložit nesouhlas</button><button class="hb hb-ghost" onclick="document.getElementById('fn-${f.id}').style.display='none'">zrušit</button></div></div>`;
+    const acts = f.status === 'archiv'
+      ? `<button class="hb" onclick="fSet('${f.id}','prectena')">↩ vrátit z archivu</button>`
+      : `<button class="hb${f.status==='beru'?' on':''}" onclick="fSet('${f.id}','beru')">👍 Beru</button><button class="hb hb-nej${f.status==='nesouhlas'?' on':''}" onclick="document.getElementById('fn-${f.id}').style.display='block'">🤔 Nesouhlasím</button><button class="hb${f.status==='prectena'?' on':''}" onclick="fSet('${f.id}','prectena')">✓ Přečteno</button><button class="hb hb-ghost" onclick="fSet('${f.id}','archiv')">🗄</button>`;
+    return `<div class="fb st-${f.status} ${FOPEN.has(f.id)?'open':''}" id="fb-${f.id}">
+      <div class="fb-head" onclick="fToggle('${f.id}')"><div><div class="fb-who">${esc(f.osoba || '—')}</div><div class="fb-meta">${esc(meta)}</div></div><div style="display:flex;gap:6px;align-items:center">${pct}<span class="fb-pill">${F_ST[f.status]||f.status}</span></div></div>
+      <div class="fb-verd">${esc(f.verdikt || '')}</div>
+      <div class="fb-body brief" style="border:none;padding:10px 0 0;border-radius:0;background:transparent">${fMd(f.content_md)}<div class="fb-meta" style="margin-top:10px">${esc(r.title || f.recording_id)}${f.created_by ? ' · ' + esc(f.created_by) : ''}</div></div>
+      ${f.jno_note ? `<div class="fb-jno"><b>Tvoje poznámka:</b> ${esc(f.jno_note)}</div>` : ''}
+      <div class="fb-act">${acts}</div>${note}</div>`;
+  }).join('');
+}
+function fToggle(id){ if (FOPEN.has(id)) FOPEN.delete(id); else FOPEN.add(id); document.getElementById('fb-'+id).classList.toggle('open'); }
+async function fSet(id, status, withNote) {
+  const payload = { action:'fb_update', id, status };
+  if (withNote) { const t = document.getElementById('fnt-'+id).value.trim(); if (!t) { toast('Napiš, s čím nesouhlasíš'); return; } payload.jno_note = t; }
+  try { const r = await fcall(payload); if (r.error) throw new Error(r.error); toast(F_ST[status] + ' ✓'); await fReload(); }
   catch(e) { toast('Chyba: ' + e.message); }
 }
 
