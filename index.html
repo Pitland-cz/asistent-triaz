@@ -275,7 +275,7 @@
     <div id="emptyQ" style="text-align:center;padding:60px 20px;color:var(--muted);display:none"><div class="big">🙌</div>Žádné otevřené dotazy.</div>
   </div>
   <div id="viewF" style="display:none">
-    <p class="sub">Zpětná vazba na tebe po schůzkách, které vedeš (1:1, porady, jednání ≥ 20 min). Píše ji asistent z celého přepisu ve stálém rámci. <b>👍 Beru</b> = závazek: příští zpětná vazba u stejného člověka zkontroluje, jestli jsi „Na příště" dodržel. <b>✓ Přečteno</b> = viděl jsem, bez závazku. <b>🤔 Nesouhlasím</b> + proč = asistent stejnou výtku nezopakuje. <b>💬 Poznámka</b> = doplň kontext nebo opravu; nejbližší běh asistenta zpětnou vazbu podle ní přepracuje. 📚 historie = zpětně dopočítané od 1. 8. (u člověka je vidíš vždy). 🗄 = archiv.</p>
+    <p class="sub">Zpětná vazba na tebe po schůzkách, které vedeš (1:1, porady, jednání ≥ 20 min). Píše ji asistent z celého přepisu ve stálém rámci, měřítka podle typu schůzky (koučovací / zadávací / rozhodovací); 🗣 – = mluvčí nejsou spolehlivě určeni. Nahoře 🧭 měsíční hodnocení tebe jako leadera projektu. <b>👍 Beru</b> = závazek: příští zpětná vazba u stejného člověka zkontroluje, jestli jsi „Na příště" dodržel. <b>✓ Přečteno</b> = viděl jsem, bez závazku. <b>🤔 Nesouhlasím</b> + proč = asistent stejnou výtku nezopakuje. <b>💬 Poznámka</b> = doplň kontext nebo opravu; nejbližší běh asistenta zpětnou vazbu podle ní přepracuje. 📚 historie = zpětně dopočítané od 1. 8. (u člověka je vidíš vždy). 🗄 = archiv.</p>
     <div class="frow" id="ffilters"></div>
     <div class="toolbar"><div class="count">Nových: <b id="cntFN">–</b> <span id="fstat" style="margin-left:10px"></span></div><div><button class="btn-ghost" id="farchbtn" onclick="fArchToggle()">🗄 Archiv</button> <button class="btn-ghost" onclick="fReload()">↻ Obnovit</button></div></div>
     <div id="fblocks"><div class="spin">Načítám…</div></div>
@@ -1018,7 +1018,7 @@ function renderF() {
   if (!FDATA) return;
   const recs = {}; for (const r of (FDATA.recordings||[])) recs[r.recording_id] = r;
   const all = FDATA.feedback || [];
-  const nNew = all.filter(f => f.status === 'nova').length;
+  const nNew = all.filter(f => f.status === 'nova').length + (FDATA.leader||[]).filter(l => l.status === 'nova').length;
   document.getElementById('cntFN').textContent = nNew;
   document.getElementById('cntF').textContent = nNew ? '(' + nNew + ')' : '';
   const shares = all.map(f => f.jno_share_pct).filter(x => x !== null && x !== undefined).map(Number);
@@ -1029,11 +1029,15 @@ function renderF() {
   if (nHist) document.getElementById('ffilters').innerHTML += `<button class="hb${FHIST?' on':''}" style="padding:5px 11px;font-size:12px;margin-left:auto" onclick="FHIST=!FHIST;renderF()">📚 historie (${nHist})</button>`;
   const list = all.filter(f => (!FWHO || (f.osoba||'—') === FWHO) && (FWHO || FHIST || f.status !== 'historie'));
   document.getElementById('emptyF').style.display = list.length ? 'none' : 'block';
-  document.getElementById('fblocks').innerHTML = list.map(f => {
+  const LDR = FDATA.leader || [];
+  const lhtml = (!FWHO && LDR.length) ? '<div class="fb-meta" style="margin:4px 0 8px;font-weight:700">🧭 LEADER PROJEKTU – měsíční hodnocení</div>' + LDR.filter(l => FHIST || l.status !== 'historie' || l === LDR[0]).map(lCard).join('') + (LDR.filter(l => l.status === 'historie' && l !== LDR[0]).length && !FHIST ? '<div class="fb-meta" style="margin:-4px 0 10px">starší měsíce: 📚 historie</div>' : '') + '<div class="fb-meta" style="margin:14px 0 8px;font-weight:700">🪞 SCHŮZKY</div>' : '';
+  document.getElementById('fblocks').innerHTML = lhtml + list.map(f => {
     const r = recs[f.recording_id] || {};
-    const pct = (f.jno_share_pct === null || f.jno_share_pct === undefined) ? '' : `<span class="fb-pill ${Number(f.jno_share_pct) > 55 ? 'hi' : 'ok'}" title="tvůj podíl mluvení">🗣 ${Math.round(f.jno_share_pct)} %</span>`;
+    const lim = f.rezim === 'zadavaci' ? 70 : (f.rezim === 'rozhodovaci' ? 60 : 50);
+    const pct = (f.jno_share_pct === null || f.jno_share_pct === undefined) ? `<span class="fb-pill" title="mluvčí v přepisu nejsou spolehlivě určeni">🗣 –</span>` : `<span class="fb-pill ${Number(f.jno_share_pct) > lim ? 'hi' : 'ok'}" title="tvůj podíl mluvení (měřítko pro tento typ ≤ ${lim} %)">🗣 ${Math.round(f.jno_share_pct)} %</span>`;
     const dl = (f.dohody||[]).filter(d => !d.do_kdy).length;
-    const meta = [f.held_at ? qFmt(f.held_at) : '', f.meeting_type || '', r.duration_sec ? Math.round(r.duration_sec/60) + ' min' : '', dl ? '⚠️ ' + dl + ' dohod bez termínu' : ''].filter(Boolean).join(' · ');
+    const REZ = { koucovaci:'koučovací', zadavaci:'zadávací', rozhodovaci:'rozhodovací', smiseny:'smíšená' };
+    const meta = [f.held_at ? qFmt(f.held_at) : '', f.rezim ? REZ[f.rezim] || f.rezim : (f.meeting_type || ''), r.duration_sec ? Math.round(r.duration_sec/60) + ' min' : '', dl ? '⚠️ ' + dl + ' dohod bez termínu' : ''].filter(Boolean).join(' · ');
     const note = `<div class="fb-note" id="fn-${f.id}" style="display:none"><textarea id="fnt-${f.id}" placeholder="kontext, oprava, s čím nesouhlasíš, nový závazek… — nejbližší běh asistenta to zapracuje do zpětné vazby">${esc(f.jno_note||'')}</textarea><div class="fb-act"><button class="hb hb-ok" onclick="fSet('${f.id}',null,true)">💬 Uložit poznámku</button><button class="hb hb-nej" onclick="fSet('${f.id}','nesouhlas',true)">🤔 Uložit jako nesouhlas</button><button class="hb hb-ghost" onclick="document.getElementById('fn-${f.id}').style.display='none'">zrušit</button></div></div>`;
     const noteOpen = `document.getElementById('fn-${f.id}').style.display='block'`;
     const acts = f.status === 'archiv'
@@ -1050,6 +1054,33 @@ function renderF() {
       <div class="fb-act">${acts}</div>${note}</div>`;
   }).join('');
 }
+const L_CRIT = [['smer','Směr a priority'],['rozhodovani','Rozhodování'],['delegace','Delegace'],['standardy','Standardy'],['rozvoj','Rozvoj lidí'],['priklad','Vlastní příklad']];
+const L_DOT = { zelena:'🟢', zluta:'🟡', cervena:'🔴' }, L_TR = { up:'↑', flat:'→', down:'↓' };
+function lCard(l) {
+  const id = 'L' + l.id, m = new Date(l.obdobi + 'T00:00:00');
+  const mes = m.toLocaleDateString('cs-CZ', { month:'long', year:'numeric' });
+  const h = l.hodnoceni || {};
+  const crit = L_CRIT.map(([k,lab]) => { const c = h[k] || {}; return `<span class="fb-pill" style="margin:2px 4px 2px 0">${L_DOT[c.stav]||'⚪'} ${lab}${c.trend && L_TR[c.trend] ? ' ' + L_TR[c.trend] : ''}</span>`; }).join('');
+  const noteOpen = `document.getElementById('fn-${id}').style.display='block'`;
+  const note = `<div class="fb-note" id="fn-${id}" style="display:none"><textarea id="fnt-${id}" placeholder="kontext, oprava, s čím nesouhlasíš… — nejbližší běh asistenta to zapracuje">${esc(l.jno_note||'')}</textarea><div class="fb-act"><button class="hb hb-ok" onclick="lSet('${l.id}',null,true)">💬 Uložit poznámku</button><button class="hb hb-nej" onclick="lSet('${l.id}','nesouhlas',true)">🤔 Uložit jako nesouhlas</button><button class="hb hb-ghost" onclick="document.getElementById('fn-${id}').style.display='none'">zrušit</button></div></div>`;
+  const acts = `<button class="hb${l.status==='beru'?' on':''}" title="závazek – příští měsíc se zkontroluje" onclick="lSet('${l.id}','beru')">👍 Beru</button><button class="hb hb-nej${l.status==='nesouhlas'?' on':''}" onclick="${noteOpen}">🤔 Nesouhlasím</button><button class="hb" onclick="${noteOpen}">💬 Poznámka</button><button class="hb${l.status==='prectena'?' on':''}" onclick="lSet('${l.id}','prectena')">✓ Přečteno</button>`;
+  return `<div class="fb st-${l.status} ${FOPEN.has(id)?'open':''}" id="fb-${id}" style="border-left:4px solid var(--blue)">
+    <div class="fb-head" onclick="fToggle('${id}')"><div><div class="fb-who">🧭 ${esc(mes)}</div><div class="fb-meta">leader projektu · kritéria 1–6</div></div><span class="fb-pill">${F_ST[l.status]||l.status}</span></div>
+    <div style="margin-top:8px">${crit}</div>
+    <div class="fb-verd">${esc(l.shrnuti||'')}</div>
+    <div class="fb-body brief" style="border:none;padding:10px 0 0;border-radius:0;background:transparent">${fMd(l.content_md)}</div>
+    ${l.jno_note ? `<div class="fb-jno"><b>Tvoje poznámka:</b> ${esc(l.jno_note)}<div class="fb-meta" style="margin-top:4px">${l.note_pending ? '⏳ zapracuje nejbližší běh asistenta' : (l.note_applied_at ? '✅ zapracováno ' + qFmt(l.note_applied_at) : '')}</div></div>` : ''}
+    ${l.apply_note && !l.note_pending ? `<div class="fb-jno" style="background:rgba(85,115,26,.10)"><b>✏️ Co asistent upravil:</b> ${esc(l.apply_note)}</div>` : ''}
+    <div class="fb-act">${acts}</div>${note}</div>`;
+}
+async function lSet(id, status, withNote) {
+  const payload = { action:'lr_update', id };
+  if (status) payload.status = status;
+  if (withNote) { const t = document.getElementById('fnt-L'+id).value.trim(); if (!t) { toast('Napiš poznámku'); return; } payload.jno_note = t; }
+  try { const r = await fcall(payload); if (r.error) throw new Error(r.error); toast(withNote ? 'Poznámka uložena ✓ — zapracuje nejbližší běh' : (F_ST[status] + ' ✓')); await fReload(); }
+  catch(e) { toast('Chyba: ' + e.message); }
+}
+
 function fToggle(id){ if (FOPEN.has(id)) FOPEN.delete(id); else FOPEN.add(id); document.getElementById('fb-'+id).classList.toggle('open'); }
 async function fSet(id, status, withNote) {
   const payload = { action:'fb_update', id };
