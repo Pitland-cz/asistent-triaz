@@ -584,7 +584,7 @@ function taskRow(t, mode) {
 function renderT() {
   const recs = {}; (DATA.recordings||[]).forEach(r => recs[r.recording_id] = r);
   const groups = {};
-  (DATA.tasks||[]).forEach(t => { const k = t.source_recording_id || '_other'; (groups[k] = groups[k] || []).push(t); });
+  (DATA.tasks||[]).forEach(t => { const k = t.source_recording_id || (String(t.source_quote||'').startsWith('✉️') ? '_mail' : '_other'); (groups[k] = groups[k] || []).push(t); });
   const keys = Object.keys(groups).sort((a,b) => ((recs[b]||{}).recorded_at||'').localeCompare((recs[a]||{}).recorded_at||''));
   let html = '', letter = 65;
   for (const k of keys) {
@@ -592,7 +592,7 @@ function renderT() {
     const jnoCnt = ts.filter(t=>isJNO(t.owner)).length;
     const L = String.fromCharCode(letter++);
     html += `<div class="block" data-block="${k}">
-      <div class="block-head"><div><div class="block-title">Blok ${L} — ${r ? esc(r.title) : 'Ostatní'}</div>
+      <div class="block-head"><div><div class="block-title">Blok ${L} — ${r ? esc(r.title) : (k==='_mail' ? '✉️ Z e-mailů (! TO DO)' : 'Ostatní')}</div>
       <div class="block-meta">${ts.length} úkolů · ${jnoCnt}× 👤 JNO · ${ts.length-jnoCnt}× 👥 ostatní</div></div>
       <button class="btn-block" onclick="approveBlock('${k}')">✓ Schválit celý blok</button></div>`;
     for (const t of ts) html += taskRow(t, 'T');
@@ -1074,10 +1074,12 @@ function mHead(i) {
   const cat = { odpoved:'<span class="badge b-jno">odpovědět</span>', delegace:'<span class="badge b-other">delegovat</span>', nejiste:'<span class="badge" style="background:rgba(240,179,90,.25);color:#8a5a12">nejisté</span>', info:'<span class="badge">info</span>' }[i.category] || '';
   const pr = (i.priority||3) <= 2 ? `<span class="badge b-due">P${i.priority}</span>` : '';
   const nw = i.new_activity ? `<span class="badge b-due" title="od posledního zobrazení přibylo ve vlákně">🆕 nová zpráva</span>` : '';
+  const tk = i.task_id && MDATA.tasks ? MDATA.tasks[i.task_id] : null;
+  const tb = tk ? `<span class="badge b-cal" title="${mAttr(tk.title)}">📋 úkol ${{navrzeny:'navržen v Triáži',schvaleny:'schválen',bezi:'běží',hotovo:'hotový',zamitnuty:'zamítnut',ceka_na_nekoho:'čeká'}[tk.status]||tk.status}${tk.due_date?' · '+tk.due_date.split('-').reverse().slice(0,2).join('. ')+'.':''}</span>` : '';
   const st = i.status === 'odpovezeno' ? '<span class="badge b-cal">⏳ AI přepracuje při dalším běhu</span>' : (i.status === 'chyba' ? `<span class="badge b-due" title="${mAttr(i.bot_error)}">⚠️ chyba odeslání</span>` : (i.status === 'vyrizeno_v_gmailu' ? '<span class="badge b-cal">✓ odpověděl jsi v Gmailu</span>' : ''));
   return `<div class="m-head"><div class="m-from">${esc(i.from_name || i.from_email || '?')} <span class="m-mail">${esc(i.from_email && i.from_name ? i.from_email : '')}</span></div><div class="m-date">${mFmt(i.received_at)}${i.message_count>1?' · '+i.message_count+' zpráv':''}</div></div>
     <div class="m-subj">${esc(i.subject || '(bez předmětu)')}</div>
-    <div class="t-meta">${cat}${pr}${nw}${st}${i.gmail_url ? `<a class="m-link" href="${mAttr(i.gmail_url)}" target="_blank" rel="noopener">otevřít v Gmailu ↗</a>` : ''}${i.context_md ? `<button class="t-quote-toggle" onclick="mToggle('${i.id}')">${MOPEN.has(i.id)?'skrýt kontext':'kontext vlákna'}</button>` : ''}</div>
+    <div class="t-meta">${cat}${pr}${nw}${tb}${st}${i.gmail_url ? `<a class="m-link" href="${mAttr(i.gmail_url)}" target="_blank" rel="noopener">otevřít v Gmailu ↗</a>` : ''}${i.context_md ? `<button class="t-quote-toggle" onclick="mToggle('${i.id}')">${MOPEN.has(i.id)?'skrýt kontext':'kontext vlákna'}</button>` : ''}</div>
     <div class="m-sum">${esc(i.summary || '')}</div>
     ${i.context_md && MOPEN.has(i.id) ? `<div class="m-ctx">${mdToHtml(i.context_md)}</div>` : ''}
     ${i.jno_note ? `<div class="m-note"><b>Tvůj pokyn:</b> ${esc(i.jno_note)}</div>` : ''}
