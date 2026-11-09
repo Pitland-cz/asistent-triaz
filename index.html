@@ -209,6 +209,40 @@
   .prsel .fchip.on.pc-medium { background:#8fb8e6; border-color:#8fb8e6; color:#111; }
   .prsel .fchip.on.pc-low { background:#d9ddd2; border-color:#d9ddd2; color:#111; }
   .h-row2 { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; }
+  /* ✉️ Maily */
+  .m-sec { font-size:13px; font-weight:700; color:var(--muted); margin:22px 0 10px; text-transform:uppercase; letter-spacing:.03em; }
+  .m-sec span { background:var(--card2); border:1px solid var(--border); border-radius:20px; padding:1px 8px; margin-left:6px; color:var(--text); }
+  .m-click { cursor:pointer; }
+  .m-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px 16px; margin-bottom:12px; }
+  .m-card.m-mini { padding:10px 14px; }
+  .m-head { display:flex; justify-content:space-between; gap:10px; align-items:baseline; flex-wrap:wrap; }
+  .m-from { font-size:14px; font-weight:700; }
+  .m-mail { font-weight:400; color:var(--muted); font-size:12px; }
+  .m-date { font-size:12px; color:var(--muted); white-space:nowrap; }
+  .m-subj { font-size:14px; margin-top:3px; }
+  .m-sum { font-size:13px; margin-top:8px; line-height:1.5; }
+  .m-ctx { font-size:12.5px; margin-top:8px; padding:10px 12px; background:var(--bg); border-radius:8px; line-height:1.5; }
+  .m-ctx p { margin:4px 0; } .m-ctx ul { padding-left:18px; }
+  .m-note { font-size:12.5px; margin-top:8px; padding:8px 10px; background:rgba(31,111,191,.08); border-radius:8px; }
+  .m-q { font-size:13.5px; font-weight:600; margin-top:10px; }
+  .m-lbl { font-size:11px; font-weight:700; color:var(--muted); margin:12px 0 5px; letter-spacing:.03em; }
+  .m-txt, .m-card textarea { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:10px; font-size:14px; font-family:inherit; line-height:1.5; resize:vertical; }
+  .m-card textarea:focus, .m-card input:focus, .m-card select:focus { outline:none; border-color:var(--lime); }
+  .m-row { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+  .m-row input, .m-row select { flex:1; min-width:160px; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:9px; font-size:13px; color:var(--text); }
+  .m-btns { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:10px; }
+  .m-ok { background:var(--lime); border-color:var(--lime); color:#111; }
+  .m-ok:hover { background:var(--lime-dim); }
+  .m-chk { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:4px; margin-right:4px; }
+  .m-del { margin-top:10px; padding-top:6px; border-top:1px dashed var(--border); }
+  .m-final { font-size:12.5px; margin-top:6px; white-space:pre-wrap; color:var(--muted); border-left:2px solid var(--border); padding-left:8px; }
+  .m-link { font-size:12px; color:var(--blue); text-decoration:none; }
+  .m-act { font-size:11px; font-weight:700; color:var(--muted); white-space:nowrap; }
+  .m-info { font-size:12.5px; margin-top:3px; }
+  .m-why { font-size:11.5px; color:var(--muted); margin-top:2px; font-style:italic; }
+  .m-fix { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:5px; font-size:12px; color:var(--text); }
+  .m-log .t-title { font-size:13px; }
+  .m-log .rt-no, .m-log .rt-ok { font-size:12px; font-weight:600; }
 </style>
 </head>
 <body>
@@ -225,6 +259,7 @@
   <div class="tabs">
     <button class="tab" id="tabD" onclick="showTab('D')">☀️ Dnešek</button>
     <button class="tab active" id="tabT" onclick="showTab('T')">Triáž <span id="cntT"></span></button>
+    <button class="tab" id="tabM" onclick="showTab('M')">✉️ Maily <span id="cntM"></span></button>
     <button class="tab" id="tabU" onclick="showTab('U')">Úkoly <span id="cntU"></span></button>
     <button class="tab" id="tabP" onclick="showTab('P')">Projekty <span id="cntP"></span></button>
     <button class="tab" id="tabL" onclick="showTab('L')">Trello <span id="cntL"></span></button>
@@ -247,6 +282,12 @@
     <div id="empty"><div class="big">🎉</div>Vše vyřízeno. Žádné úkoly nečekají na triáž.</div>
   </div>
 
+  <div id="viewM" style="display:none">
+    <p class="sub">E-maily zpracovává AI 3× denně (7:30 · 12:30 · 17:30). ✓ Odeslat = odejde do 15 min jako odpověď ve vlákně, pak do ! Archiv. Text uprav přímo v poli — AI se učí z rozdílu mezi návrhem a tím, co odešleš. 💬 Pokyn pro AI = návrh přepracuje při dalším běhu. Dole odškrtni, co AI přesunula sama.</p>
+    <div class="toolbar"><div class="count">K vyřízení: <b id="cntMA">–</b> <span id="mrun" style="margin-left:10px"></span></div><button class="btn-ghost" onclick="mReload()">↻ Obnovit</button></div>
+    <div id="mblocks"><div class="spin">Načítám…</div></div>
+    <div id="emptyM" style="text-align:center;padding:60px 20px;color:var(--muted);display:none"><div class="big">📭</div>Nic k vyřízení — doručená je čistá.</div>
+  </div>
   <div id="viewU" style="display:none">
     <p class="sub">✓✓ hotovo · ✎ upravit (i termín a čas). Termín s časem = event v kalendáři, jen datum = celodenní poznámka (zapíše nejbližší běh asistenta).</p>
     <div id="ufilters"></div>
@@ -332,7 +373,7 @@ function todayISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.get
 
 function showTab(t) {
   if (t==='H') { hLoadSeen(); hMarkSeen(); }
-  for (const x of ['D','T','U','P','L','Q','F','H']) {
+  for (const x of ['D','T','M','U','P','L','Q','F','H']) {
     document.getElementById('tab'+x).classList.toggle('active', t===x);
     document.getElementById('view'+x).style.display = t===x ? 'block' : 'none';
   }
@@ -352,6 +393,7 @@ async function loadAll(throwErr) {
   renderT(); renderU(); renderP(); renderL(); renderD();
   qReload(true);
   fReload(true);
+  mReload(true);
   if (firstLoad) { firstLoad = false; if (BDATA && BDATA.brief && BDATA.brief.brief_date === todayISO()) showTab('D'); }
   document.getElementById('cntT').textContent = '(' + (DATA.tasks||[]).length + ')';
   document.getElementById('cntU').textContent = '(' + (ODATA.tasks||[]).length + ')';
@@ -987,6 +1029,155 @@ async function qAddSave() {
   try { const r = await call({ action:'rq_add', recording_id: QADD_REC, text }); if (r.error) throw new Error(r.error); toast('Poznámka uložena ✓'); document.getElementById('qadd').style.display = 'none'; await qReload(); }
   catch(e) { toast('Chyba: ' + e.message); }
 }
+
+
+/* ---------- ✉️ Maily — e-mailová triáž (od 9. 11. 2026, edge fn asist-maily) ---------- */
+const MEP = 'https://dltopsftcmkxqrcobgrc.supabase.co/functions/v1/asist-maily';
+let MDATA = null, MOPEN = new Set(), MDONE = false, MDEL = new Set();
+async function mcall(payload) {
+  const r = await fetch(MEP, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ access: ACCESS, ...payload }) });
+  if (r.status === 401) throw new Error('unauthorized');
+  const j = await r.json(); if (j.error) throw new Error(j.error); return j;
+}
+async function mReload(silent) {
+  try { MDATA = await mcall({ action:'m_list' }); }
+  catch(e) { if (!silent) toast('Chyba: ' + e.message); return; }
+  renderM();
+}
+function mFmt(ts){ if(!ts) return ''; const d=new Date(ts); return d.getDate()+'. '+(d.getMonth()+1)+'. '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+function mAttr(s){ return esc(s).replace(/'/g,'&#39;'); }
+const M_ACT = { archiv:'📁 ! Archiv', doklady:'🧾 Doklady', todo:'📌 ! TO DO', vyrizeno:'✅ vyřízeno' };
+const M_TO = { archiv:'! Archiv', doklady:'Doklady', todo:'! TO DO', inbox:'Doručená' };
+function renderM() {
+  if (!MDATA) return;
+  const items = MDATA.items || [], logs = MDATA.logs || [];
+  const act = items.filter(i => ['nove','odpovezeno','chyba','vyrizeno_v_gmailu'].includes(i.status) && i.category !== 'nejiste');
+  const nej = items.filter(i => ['nove','odpovezeno','chyba'].includes(i.status) && i.category === 'nejiste');
+  const wait = items.filter(i => ['k_odeslani','k_delegaci','k_archivaci'].includes(i.status));
+  const done = items.filter(i => ['odeslano','delegovano','archivovano','zamitnuto'].includes(i.status));
+  const unchecked = logs.filter(l => !l.verdict);
+  const need = act.filter(i=>i.status!=='odpovezeno').length + nej.filter(i=>i.status!=='odpovezeno').length;
+  document.getElementById('cntM').textContent = (need + unchecked.length) ? '(' + (need + unchecked.length) + ')' : '';
+  document.getElementById('cntMA').textContent = need;
+  const runs = MDATA.runs || [];
+  document.getElementById('mrun').textContent = runs.length ? 'poslední běh ' + mFmt(runs[0].finished_at || runs[0].started_at) : 'zatím žádný běh';
+  let h = '';
+  if (act.length) h += `<div class="m-sec">✍️ K odpovědi / delegaci <span>${act.length}</span></div>` + act.map(mCard).join('');
+  if (nej.length) h += `<div class="m-sec">❓ Nejisté — potřebuju tvoje slovo <span>${nej.length}</span></div>` + nej.map(mCard).join('');
+  if (wait.length) h += `<div class="m-sec">⏳ Čeká na provedení v Gmailu (do 15 min) <span>${wait.length}</span></div>` + wait.map(mWait).join('');
+  h += mLogHtml(logs);
+  if (done.length) h += `<div class="m-sec m-click" onclick="MDONE=!MDONE;renderM()">✅ Vyřízeno za 3 dny <span>${done.length}</span> ${MDONE?'▾':'▸'}</div>` + (MDONE ? done.map(mWait).join('') : '');
+  document.getElementById('mblocks').innerHTML = h;
+  document.getElementById('emptyM').style.display = (items.length || logs.length) ? 'none' : 'block';
+}
+function mHead(i) {
+  const cat = { odpoved:'<span class="badge b-jno">odpovědět</span>', delegace:'<span class="badge b-other">delegovat</span>', nejiste:'<span class="badge" style="background:rgba(240,179,90,.25);color:#8a5a12">nejisté</span>', info:'<span class="badge">info</span>' }[i.category] || '';
+  const pr = (i.priority||3) <= 2 ? `<span class="badge b-due">P${i.priority}</span>` : '';
+  const nw = i.new_activity ? `<span class="badge b-due" title="od posledního zobrazení přibylo ve vlákně">🆕 nová zpráva</span>` : '';
+  const st = i.status === 'odpovezeno' ? '<span class="badge b-cal">⏳ AI přepracuje při dalším běhu</span>' : (i.status === 'chyba' ? `<span class="badge b-due" title="${mAttr(i.bot_error)}">⚠️ chyba odeslání</span>` : (i.status === 'vyrizeno_v_gmailu' ? '<span class="badge b-cal">✓ odpověděl jsi v Gmailu</span>' : ''));
+  return `<div class="m-head"><div class="m-from">${esc(i.from_name || i.from_email || '?')} <span class="m-mail">${esc(i.from_email && i.from_name ? i.from_email : '')}</span></div><div class="m-date">${mFmt(i.received_at)}${i.message_count>1?' · '+i.message_count+' zpráv':''}</div></div>
+    <div class="m-subj">${esc(i.subject || '(bez předmětu)')}</div>
+    <div class="t-meta">${cat}${pr}${nw}${st}${i.gmail_url ? `<a class="m-link" href="${mAttr(i.gmail_url)}" target="_blank" rel="noopener">otevřít v Gmailu ↗</a>` : ''}${i.context_md ? `<button class="t-quote-toggle" onclick="mToggle('${i.id}')">${MOPEN.has(i.id)?'skrýt kontext':'kontext vlákna'}</button>` : ''}</div>
+    <div class="m-sum">${esc(i.summary || '')}</div>
+    ${i.context_md && MOPEN.has(i.id) ? `<div class="m-ctx">${mdToHtml(i.context_md)}</div>` : ''}
+    ${i.jno_note ? `<div class="m-note"><b>Tvůj pokyn:</b> ${esc(i.jno_note)}</div>` : ''}
+    ${i.status === 'chyba' && i.bot_error ? `<div class="m-note" style="background:rgba(192,68,47,.08)"><b>Chyba:</b> ${esc(i.bot_error)}</div>` : ''}`;
+}
+function mCard(i) {
+  const id = i.id;
+  let body = '';
+  if (i.category === 'nejiste') {
+    const opts = (i.options && i.options.length) ? `<div class="frow" style="margin:8px 0 0">${i.options.map(o => `<button class="hb" onclick="mAnswer('${id}', ${mAttr(JSON.stringify(String(o)))})">${esc(String(o))}</button>`).join('')}</div>` : '';
+    body = `<div class="m-q">❓ ${esc(i.question || 'Co s tímhle?')}</div>${opts}
+      <div class="m-row"><textarea id="mq-${id}" rows="2" placeholder="odpověz volným textem — např. „archiv“, „připrav odpověď, že…“, „deleguj na Toma“"></textarea></div>
+      <div class="m-btns"><button class="hb m-ok" onclick="mAnswer('${id}')">Odpovědět AI</button><button class="hb" onclick="mArchive('${id}')">📁 Jen archivovat</button></div>`;
+    return `<div class="m-card" id="m-${id}">${mHead(i)}${body}</div>`;
+  }
+  const txt = i.edit_body != null ? i.edit_body : (i.draft_body || '');
+  const isDel = i.category === 'delegace' || MDEL.has(id);
+  const ppl = (MDATA.people || []).filter(p => p.canonical !== 'JNO');
+  const sel = `<select id="mdp-${id}" onchange="mDelPick('${id}')"><option value="">— komu —</option>${ppl.map(p => `<option value="${mAttr(p.email)}" ${p.email===i.delegate_email?'selected':''}>${esc(p.canonical)} · ${esc(p.email)}</option>`).join('')}<option value="__jiny">jiný e-mail…</option></select>`;
+  const del = isDel ? `<div class="m-del"><div class="m-lbl">→ DELEGOVAT ${i.delegate_to ? '(návrh AI: <b>' + esc(i.delegate_to) + '</b>)' : ''}</div>
+      <div class="m-row">${sel}<input id="mde-${id}" placeholder="e-mail" value="${mAttr(i.delegate_email||'')}"></div>
+      <div class="m-row"><textarea id="mdb-${id}" rows="4" placeholder="text pro kolegu (nad přeposlaný e-mail)">${esc(i.delegate_body||'')}</textarea></div>
+      <div class="m-btns"><button class="hb m-ok" onclick="mDelegate('${id}')">→ Přeposlat a archivovat</button>${i.category!=='delegace'?`<button class="hb hb-ghost" onclick="MDEL.delete('${id}');renderM()">zrušit</button>`:''}</div></div>` : '';
+  const rep = i.category === 'delegace' && !MDEL.has(id+'_rep') ? `<div class="m-btns"><button class="hb hb-ghost" onclick="MDEL.add('${id}_rep');renderM()">✍️ raději odpovědět sám</button><button class="hb" onclick="mArchive('${id}')">📁 Jen archivovat</button><button class="hb hb-ghost" onclick="mPokyn('${id}')">💬 Pokyn pro AI</button></div>` :
+    `<div class="m-lbl">ODPOVĚĎ ${i.reply_to ? '→ ' + esc(i.reply_to) : ''} ${i.edit_body != null ? '<span style="color:var(--blue)">· rozpracováno</span>' : ''}</div>
+      <textarea id="mt-${id}" class="m-txt" rows="${Math.min(14, Math.max(5, txt.split('\n').length + 1))}" onblur="mSaveEdit('${id}')">${esc(txt)}</textarea>
+      <div class="m-btns"><button class="hb m-ok" onclick="mSend('${id}')">✓ Odeslat</button>
+        <label class="m-chk"><input type="checkbox" id="mra-${id}" ${i.reply_all?'checked':''}> všem${i.reply_cc ? ' (+ ' + esc(i.reply_cc) + ')' : ''}</label>
+        <button class="hb" onclick="mPokyn('${id}')">💬 Pokyn pro AI</button>
+        ${!isDel ? `<button class="hb" onclick="MDEL.add('${id}');renderM()">→ Delegovat</button>` : ''}
+        <button class="hb" onclick="mArchive('${id}')">📁 Jen archivovat</button>
+        <button class="hb hb-ghost" onclick="mDismiss('${id}')">✗ Neodpovídat</button>
+        ${i.edit_body != null && i.draft_body ? `<button class="undo" onclick="mResetDraft('${id}')">vrátit návrh AI</button>` : ''}</div>`;
+  return `<div class="m-card" id="m-${id}">${mHead(i)}${rep}${del}</div>`;
+}
+function mWait(i) {
+  const lab = { k_odeslani:'⏳ odejde odpověď', k_delegaci:'⏳ přepošle se → ' + esc(i.delegate_email||''), k_archivaci:'⏳ přesune se do ! Archiv', odeslano:'✅ odesláno', delegovano:'✅ přeposláno → ' + esc(i.delegate_email||''), archivovano:'📁 archivováno', zamitnuto:'✗ bez odpovědi' }[i.status] || i.status;
+  const can = ['k_odeslani','k_delegaci','k_archivaci'].includes(i.status);
+  return `<div class="m-card m-mini"><div class="m-head"><div class="m-from">${esc(i.from_name || i.from_email || '')} · <span style="font-weight:400">${esc(i.subject||'')}</span></div><div class="m-date">${lab} ${can ? `<button class="undo" onclick="mUndo('${i.id}')">↩ zpět</button>` : ''}</div></div>
+    ${i.final_body && ['k_odeslani','odeslano','k_delegaci','delegovano'].includes(i.status) ? `<div class="m-final">${esc(i.final_body)}</div>` : ''}</div>`;
+}
+function mLogHtml(logs) {
+  if (!logs.length) return '';
+  const groups = {}; const order = [];
+  for (const l of logs) { const k = l.run_id || 'x'; if (!groups[k]) { groups[k] = []; order.push(k); } groups[k].push(l); }
+  const runs = {}; for (const r of (MDATA.runs || [])) runs[r.id] = r;
+  let h = `<div class="m-sec">🤖 Co AI udělala sama — zkontroluj a odškrtni <span>${logs.filter(l=>!l.verdict).length}</span></div>`;
+  for (const k of order) {
+    const L = groups[k]; const open = L.filter(l => !l.verdict);
+    const r = runs[k]; const t = r ? mFmt(r.started_at) : mFmt(L[L.length-1].created_at);
+    h += `<div class="block"><div class="block-head"><div><div class="block-title">Běh ${t}</div><div class="block-meta">${L.length} e-mailů · ${['archiv','doklady','todo','vyrizeno'].map(a => { const n = L.filter(l=>l.action===a).length; return n ? M_ACT[a] + ' ' + n : ''; }).filter(Boolean).join(' · ')}</div></div>
+      ${open.length ? `<button class="btn-block" onclick="mLogOk(${mAttr(JSON.stringify(open.map(l=>l.id)))})">✓ vše v pořádku, beru na vědomí</button>` : '<span class="block-meta">✓ zkontrolováno</span>'}</div>`;
+    h += L.map(l => {
+      const v = l.verdict === 'ok' ? '<span class="rt-ok">✓</span>' : (l.verdict === 'spatne' ? `<span class="rt-no">↪ ${M_TO[l.correct_to]||''} ${l.revert_status==='presunuto'?'(přesunuto)':(l.revert_status==='chyba'?'⚠️ '+esc(l.revert_error||''):'(⏳ do 15 min)')}</span> ${l.revert_status!=='presunuto'?`<button class="undo" onclick="mLogReset('${l.id}')">zrušit</button>`:''}` :
+        `<button class="hb" style="padding:4px 9px" onclick="mLogOk(['${l.id}'])">✓</button> <select class="m-fix" onchange="mLogFix('${l.id}', this.value)"><option value="">↪ mělo to být…</option>${['todo','doklady','archiv','inbox'].filter(x=>x!==l.action).map(x=>`<option value="${x}">${M_TO[x]}</option>`).join('')}</select>`);
+      return `<div class="task m-log"><div class="t-row"><div class="t-title"><span class="m-act">${M_ACT[l.action]||l.action}</span> <b>${esc(l.from_name || l.from_email || '')}</b> — ${esc(l.subject || '')}${l.gmail_url ? ` <a class="m-link" href="${mAttr(l.gmail_url)}" target="_blank" rel="noopener">↗</a>` : ''}
+        ${l.info ? `<div class="m-info">${esc(l.info)}</div>` : ''}${l.reason ? `<div class="m-why">proč: ${esc(l.reason)}</div>` : ''}</div><div class="t-actions">${v}</div></div></div>`;
+    }).join('') + '</div>';
+  }
+  return h;
+}
+function mToggle(id){ if (MOPEN.has(id)) MOPEN.delete(id); else MOPEN.add(id); renderM(); }
+function mDelPick(id){ const s = document.getElementById('mdp-'+id), e = document.getElementById('mde-'+id); if (s.value === '__jiny') { e.value=''; e.focus(); } else if (s.value) e.value = s.value; }
+async function mDo(payload, msg) { try { await mcall(payload); if (msg) toast(msg); await mReload(); } catch(e) { toast('Chyba: ' + e.message); } }
+async function mSaveEdit(id) {
+  const ta = document.getElementById('mt-'+id); if (!ta) return;
+  const it = (MDATA.items||[]).find(x=>x.id===id); if (!it) return;
+  const cur = it.edit_body != null ? it.edit_body : (it.draft_body || '');
+  if (ta.value === cur) return;
+  try { await mcall({ action:'m_save_edit', id, body: ta.value }); it.edit_body = ta.value; } catch(e) { toast('Neuloženo: ' + e.message); }
+}
+function mSend(id) {
+  const ta = document.getElementById('mt-'+id); const txt = (ta ? ta.value : '').trim();
+  if (!txt) { toast('Text odpovědi je prázdný'); return; }
+  mDo({ action:'m_send', id, body: txt, reply_all: document.getElementById('mra-'+id)?.checked }, '✓ Odejde do 15 minut (do té doby jde vrátit)');
+}
+function mDelegate(id) {
+  const em = (document.getElementById('mde-'+id).value || '').trim();
+  const s = document.getElementById('mdp-'+id); const who = s && s.value && s.value !== '__jiny' ? s.options[s.selectedIndex].text.split(' · ')[0] : em;
+  if (!em) { toast('Vyber komu'); return; }
+  mDo({ action:'m_delegate', id, delegate_email: em, delegate_to: who, body: document.getElementById('mdb-'+id).value }, '→ Přepošle se do 15 minut');
+}
+function mArchive(id){ mDo({ action:'m_archive', id }, '📁 Přesune se do ! Archiv'); }
+function mDismiss(id){ mDo({ action:'m_dismiss', id }, '✗ Bez odpovědi → ! Archiv'); }
+function mUndo(id){ mDo({ action:'m_undo', id }, '↩ Vráceno do triáže'); }
+function mAnswer(id, text) {
+  const ta = document.getElementById('mq-'+id); const t = (text !== undefined ? text : (ta ? ta.value : '')).trim();
+  if (!t) { toast('Napiš odpověď'); return; }
+  mDo({ action:'m_answer', id, text: t }, 'Uloženo — AI to zpracuje při dalším běhu');
+}
+function mPokyn(id) {
+  const t = prompt('Pokyn pro AI k tomuto e-mailu (např. „odmítni slušně“, „navrhni termín příští týden“, „deleguj na Lucii“):');
+  if (!t || !t.trim()) return;
+  const ta = document.getElementById('mt-'+id);
+  mDo({ action:'m_answer', id, text: t.trim(), body: ta ? ta.value : undefined }, 'AI návrh přepracuje při dalším běhu');
+}
+async function mResetDraft(id){ await mDo({ action:'m_save_edit', id, body: null }); }
+function mLogOk(ids){ mDo({ action:'m_log_ok', ids }, '✓ Odškrtnuto'); }
+function mLogFix(id, to){ if (!to) return; mDo({ action:'m_log_fix', id, correct_to: to }, '↪ Přesune se do 15 minut, AI si opravu zapamatuje'); }
+function mLogReset(id){ mDo({ action:'m_log_reset', id }); }
 
 /* ---------- Zpětná vazba JNO na vedené schůzky (od 3. 11. 2026) ---------- */
 const FEP = 'https://dltopsftcmkxqrcobgrc.supabase.co/functions/v1/asist-zpetna-vazba';
