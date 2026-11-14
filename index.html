@@ -102,6 +102,7 @@
   .ty-row .ty-meta { color:var(--muted); font-size:12px; }
   .ty-det > summary { list-style:none; cursor:pointer; }
   .ty-det > summary::-webkit-details-marker { display:none; }
+  .ty-today { background:rgba(200,230,80,.18); }
   .edit-form label { font-size:11px; color:var(--muted); }
   .edit-row2 { display:flex; gap:8px; }
   .edit-btns { display:flex; gap:8px; }
@@ -812,6 +813,35 @@ function tTrend(a, b) {
   const d = a - b; if (!d) return `<span class="ty-tr">= ${b}</span>`;
   return `<span class="ty-tr ${d > 0 ? 'up' : 'dn'}" title="předchozí období: ${b}">${d > 0 ? '▲' : '▼'}${Math.abs(d)}</span>`;
 }
+function samecHtml(W) {
+  const D = TDATA; if (!D.samci_dny) return '';
+  const mine = s => !TP || (s || '').split(', ').includes(TP);
+  const rows = (D.samci || []).filter(r => r.k === TW && (!TP || r.osoba === TP)).sort((a, b) => b.dni - a.dni);
+  const visi = (D.samci_visi || []).filter(c => mine(c.samec));
+  const late = visi.filter(c => c.dni > 0), dnes = visi.filter(c => c.dni <= 0);
+  let h = `<div class="block"><div class="block-head"><div><div class="block-title">🔧 SAMec – úkoly z Pitland.cz – PROVOZ</div>
+    <div class="block-meta">SAMec dne = směna na pozici SAMec (smeny.cz) · sloupce TO DO SAMec, Úkoly s četností, SERVIS · propadlo = termín v den směny a ráno po ní není hotovo${D.samec_denik_od ? ' (eviduje se od ' + tDM(D.samec_denik_od) + ')' : ''}</div></div></div>`;
+  h += `<div class="ty-scroll"><table class="ty-tab"><thead><tr><th>SAMec</th><th>Dní SAMcem</th><th title="karty dokončené na nástěnce PROVOZ během jeho SAMec směny">✅ Na směně dokončeno</th><th title="karty založené během jeho směny">🆕 Přibylo</th><th title="úkoly s termínem v jeho den, které nebyly splněny">❌ Propadlo</th></tr></thead><tbody>`;
+  for (const r of rows) h += `<tr onclick="tSet('p','${r.osoba.replace(/'/g, "\\'")}')" class="${TP===r.osoba?'sel':''}"><td class="ty-n">${esc(r.osoba)}</td><td>${r.dni}</td><td><b>${r.hotovo}</b></td><td>${r.nove || '–'}</td><td>${r.propadle ? `<span class="ty-late">${r.propadle}</span>` : '0'}</td></tr>`;
+  if (!rows.length) h += `<tr><td colspan="5" style="color:var(--muted)">V období nebyl SAMcem.</td></tr>`;
+  h += `</tbody></table></div>`;
+  if (late.length || dnes.length) {
+    h += `<div class="ty-day" style="text-transform:none">⏰ Visí po termínu (${late.length})${dnes.length ? ' · dnes v termínu ' + dnes.length : ''}</div>`;
+    for (const c of [...late, ...dnes]) h += `<div class="ty-row"><span class="ty-t">${c.short_url ? `<a href="${esc(c.short_url)}" target="_blank" rel="noopener">${esc(c.name)}</a>` : esc(c.name)}</span><span class="ty-meta">${esc(c.list_name || '')} · termín ${tDM(c.due_day)} · SAMec ${c.samec ? esc(c.samec) : '<span class="ty-late">nikdo</span>'} · ${c.dni > 0 ? `<span class="ty-late">${c.dni} ${c.dni === 1 ? 'den' : c.dni < 5 ? 'dny' : 'dní'} po termínu</span>` : 'dnes'}</span></div>`;
+  }
+  const dny = (D.samci_dny || []).filter(x => !TP || mine(x.samec));
+  h += `<details class="ty-det"><summary class="ty-day" style="cursor:pointer;text-transform:none">📅 Po dnech (14 dní zpět + 7 dopředu) ▾</summary>`;
+  for (const x of dny) {
+    const fut = x.day > D.today, prop = x.propadle || [];
+    const bez = !x.samec;
+    h += `<div class="ty-row${x.day === D.today ? ' ty-today' : ''}"><span class="ty-t">${fmtDayCZ(x.day)}${x.day === D.today ? ' (dnes)' : ''} · ${bez ? '<span class="ty-late">⚠️ bez SAMce</span>' : esc(x.samec)}</span>
+      <span class="ty-meta">${fut ? (x.termin ? `📌 ${x.termin} s termínem` : 'naplánováno') : `✅ ${x.hotovo} · 🆕 ${x.nove}${prop.length ? ` · <span class="ty-late">❌ ${prop.length}</span>` : ''}${x.termin && x.day === D.today ? ` · 📌 dnes ${x.termin}` : ''}`}</span>
+      ${prop.length ? `<span class="ty-meta" style="flex-basis:100%">❌ ${prop.map(p => p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)).join(' · ')}</span>` : ''}</div>`;
+  }
+  h += `</details></div>`;
+  return h;
+}
+
 function renderTym() {
   const box = document.getElementById('tymbox'); if (!box) return;
   if (!TDATA) { box.innerHTML = '<div class="spin">Načítám přehled týmu…</div>'; return; }
@@ -841,6 +871,8 @@ function renderTym() {
       <td>${isPL(n) ? (s && s.agenda_h ? String(s.agenda_h).replace('.', ',') + ' h' : '0 h') : '–'}</td></tr>`;
   }
   h += `</tbody></table></div><div class="sec-note">Klikni na řádek = filtr na řešitele (znovu klik = zrušit). Karty „Směny DD.MM.“ a „POZOR – kolize“ se nepočítají.</div></div>`;
+
+  h += samecHtml(W);
 
   // co se udělalo
   const done = (TDATA.hotove || []).filter(e => e.day >= W.od && e.day <= W.do && (!TP || e.resitel === TP));
