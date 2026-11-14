@@ -856,6 +856,7 @@ function renderTym() {
   const K = {}; for (const r of TDATA.klik) if (r.k === TW) K[r.kdo_klikl] = r.n;
   const O = {}; for (const r of TDATA.otevrene) O[r.resitel] = r;
   const S = {}; for (const r of TDATA.smeny) if (r.k === TW) S[r.resitel] = r;
+  const PO = {}; for (const r of (TDATA.posuny || [])) if (r.k === TW) PO[r.resitel] = r;
   const others = Object.keys(L).filter(n => !TKEY.includes(n) && ((L[n].hotovo + L[n].nove + L[n].hotovo_pred) > 0 || O[n])).sort((a, b) => (a === 'Nepřiřazeno') - (b === 'Nepřiřazeno') || a.localeCompare(b, 'cs'));
   const people = [...TKEY, ...others];
   let h = `<div class="block ty-box"><div class="block-head"><div><div class="block-title">👥 Přehled týmu</div>
@@ -864,15 +865,16 @@ function renderTym() {
       <button class="fchip${TW==='w7'?' on':''}" onclick="tSet('w','w7')">Posledních 7 dní</button>
       <button class="fchip${TW==='w28'?' on':''}" onclick="tSet('w','w28')">Poslední 4 týdny</button>
     </div>
-    <div class="ty-scroll"><table class="ty-tab"><thead><tr><th>Řešitel</th><th title="dokončené karty, kde je řešitelem (▲▼ = proti předchozímu období)">✅ Dokončeno</th><th title="nově založené karty">🆕 Přibylo</th><th title="kolik karet v Trellu sám odklikl jako hotové (i cizích)">✋ Odklikl</th><th title="karty v aktivních sloupcích s pohybem za 60 dní">📋 Otevřené</th><th title="směny ze smeny.cz">🗓 Směny</th><th title="naplánované hodiny na pozici AGENDA">AGENDA</th></tr></thead><tbody>`;
+    <div class="ty-scroll"><table class="ty-tab"><thead><tr><th>Řešitel</th><th title="dokončené karty, kde je řešitelem (▲▼ = proti předchozímu období)">✅ Dokončeno</th><th title="nově založené karty">🆕 Přibylo</th><th title="kolik karet v Trellu sám odklikl jako hotové (i cizích)">✋ Odklikl</th><th title="karty v aktivních sloupcích s pohybem za 60 dní">📋 Otevřené</th><th title="posunutí termínu na kartách (PL a Danny; bez opakovaných karet) · 🔁 = karta posunutá v období 2× a víc · bez 💬 = bez komentáře">📅 Posunuto</th><th title="směny ze smeny.cz">🗓 Směny</th><th title="naplánované hodiny na pozici AGENDA">AGENDA</th></tr></thead><tbody>`;
   for (const n of people) {
-    const r = L[n] || { hotovo:0, nove:0, hotovo_pred:0 }, o = O[n], s = S[n];
+    const r = L[n] || { hotovo:0, nove:0, hotovo_pred:0 }, o = O[n], s = S[n], po = PO[n];
     h += `<tr class="${TP===n?'sel':''}" onclick="tSet('p','${n.replace(/'/g,"\\'")}')">
       <td class="ty-n">${esc(n)}</td>
       <td><b>${r.hotovo}</b> ${tTrend(r.hotovo, r.hotovo_pred)}</td>
       <td>${r.nove || '–'}</td>
       <td>${K[n] != null ? K[n] : '–'}</td>
       <td>${o ? o.n + (o.po_terminu ? ` <span class="ty-late">⏰${o.po_terminu}</span>` : '') : '–'}</td>
+      <td>${po ? `<b>${po.n}</b>${po.opak ? ` 🔁${po.opak}` : ''}${po.bez_kom ? ` <span class="ty-late">${po.bez_kom} bez 💬</span>` : ''}` : '–'}</td>
       <td>${isPL(n) ? (s ? `${s.dni} dní · ${String(s.hodin).replace('.', ',')} h` : '0') : '–'}</td>
       <td>${isPL(n) ? (s && s.agenda_h ? String(s.agenda_h).replace('.', ',') + ' h' : '0 h') : '–'}</td></tr>`;
   }
@@ -891,6 +893,21 @@ function renderTym() {
     h += `<div class="ty-row"><span class="ty-t">${esc(e.name)}</span><span class="ty-meta">${TP ? '' : `<b>${esc(e.resitel)}</b> · `}<span class="badge" style="background:${B.bg};color:${B.fg}">${B.name}</span>${e.klikl && e.klikl !== e.resitel ? ` · odklikl ${esc(e.klikl)}` : ''}</span></div>`;
   }
   h += '</div>';
+
+  // posunuté termíny (PL + Danny)
+  const pl = (TDATA.posuny_list || []).filter(e => e.day >= W.od && e.day <= W.do && (!TP || e.resitel === TP));
+  if (pl.length || TP) {
+    const nb = pl.filter(e => !e.komentar).length, nk = new Set(pl.map(e => e.name)).size, sd = pl.reduce((a, e) => a + (e.dni || 0), 0);
+    h += `<details class="block ty-det"${TP ? ' open' : ''}><summary class="block-head"><div><div class="block-title">📅 Posunuté termíny${TP ? ' – ' + esc(TP) : ''}</div><div class="block-meta">${pl.length} posunů · ${nk} karet · celkem +${sd} dní${nb ? ` · <span class="ty-late">${nb} bez komentáře</span>` : ''} · nástěnky PL a Danny (PROVOZ viz SAMec) · opakované karty se nepočítají</div></div></summary>`;
+    let ld = '';
+    for (const e of pl) {
+      if (e.day !== ld) { h += `<div class="ty-day">${fmtDayCZ(e.day)}</div>`; ld = e.day; }
+      const B = LBOARD[e.board] || { name:e.board, bg:'var(--card2)', fg:'var(--muted)' };
+      h += `<div class="ty-row"><span class="ty-t">${e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.name)}</a>` : esc(e.name)}</span><span class="ty-meta">${TP ? '' : `<b>${esc(e.resitel)}</b> · `}<span class="badge" style="background:${B.bg};color:${B.fg}">${B.name}</span> · ${esc(e.detail || '')} (+${e.dni} d)${e.kolikrat > 1 ? ` · <span class="ty-late">🔁 ${e.poradi}. posun z ${e.kolikrat}</span>` : ''}${e.kdo && e.kdo !== e.resitel ? ` · posunul ${esc(e.kdo)}` : ''}</span><span class="ty-meta" style="flex-basis:100%">${e.komentar ? '💬 ' + esc(e.komentar) : '<span style="opacity:.7">bez komentáře</span>'}</span></div>`;
+    }
+    if (!pl.length) h += `<div class="sec-note">V období žádný posun termínu. 👍</div>`;
+    h += '</details>';
+  }
 
   // směny PL
   if (TP && isPL(TP)) {
