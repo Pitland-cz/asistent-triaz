@@ -734,7 +734,7 @@ const LBOARD = {
   PROVOZ: { name:'Pitland PROVOZ',         bg:'rgba(31,111,191,.12)', fg:'#1f6fbf' },
   DANNY:  { name:'Projekty - Danny',       bg:'rgba(192,122,47,.14)', fg:'#a5691f' },
 };
-const LEV = { nova:'🆕 nová', hotovo:'✅ hotovo', presun:'➡️ přesun', archiv:'🗄 archiv' };
+const LEV = { nova:'🆕 nová', hotovo:'✅ hotovo', presun:'➡️ přesun', archiv:'🗄 archiv', posun:'📅 posun termínu', komentar:'💬 komentář' };
 let LF = { boards: [], types: [] };   // prázdné pole = vše
 function lfToggle(kind, val) {
   const a = LF[kind]; const i = a.indexOf(val);
@@ -757,7 +757,7 @@ function renderL() {
   }
   leg += '</div><div class="frow">';
   leg += `<button class="fchip f2${!LF.types.length?' on':''}" onclick="LF.types=[];renderL()">Vše <b>${all.length}</b></button>`;
-  for (const k of ['nova','hotovo','presun','archiv']) {
+  for (const k of ['nova','hotovo','presun','archiv','posun','komentar']) {
     const sel = LF.types.includes(k);
     leg += `<button class="fchip f2${sel?' on':''}" onclick="lfToggle('types','${k}')">${LEV[k]} <b>${cntT[k]||0}</b></button>`;
   }
@@ -820,14 +820,20 @@ function samecHtml(W) {
   const visi = (D.samci_visi || []).filter(c => mine(c.samec));
   const late = visi.filter(c => c.dni > 0), dnes = visi.filter(c => c.dni <= 0);
   let h = `<div class="block"><div class="block-head"><div><div class="block-title">🔧 SAMec – úkoly z Pitland.cz – PROVOZ</div>
-    <div class="block-meta">SAMec dne = směna na pozici SAMec (smeny.cz) · sloupce TO DO SAMec, Úkoly s četností, SERVIS · propadlo = termín v den směny a ráno po ní není hotovo${D.samec_denik_od ? ' (eviduje se od ' + tDM(D.samec_denik_od) + ')' : ''}</div></div></div>`;
-  h += `<div class="ty-scroll"><table class="ty-tab"><thead><tr><th>SAMec</th><th>Dní SAMcem</th><th title="karty dokončené na nástěnce PROVOZ během jeho SAMec směny">✅ Na směně dokončeno</th><th title="karty založené během jeho směny">🆕 Přibylo</th><th title="úkoly s termínem v jeho den, které nebyly splněny">❌ Propadlo</th></tr></thead><tbody>`;
-  for (const r of rows) h += `<tr onclick="tSet('p','${r.osoba.replace(/'/g, "\\'")}')" class="${TP===r.osoba?'sel':''}"><td class="ty-n">${esc(r.osoba)}</td><td>${r.dni}</td><td><b>${r.hotovo}</b></td><td>${r.nove || '–'}</td><td>${r.propadle ? `<span class="ty-late">${r.propadle}</span>` : '0'}</td></tr>`;
-  if (!rows.length) h += `<tr><td colspan="5" style="color:var(--muted)">V období nebyl SAMcem.</td></tr>`;
+    <div class="block-meta">SAMec dne = směna na pozici SAMec (smeny.cz) · sloupce TO DO SAMec, Úkoly s četností, SERVIS · propadlo = termín v den směny a ráno po ní není hotovo · posunout termín lze jen s komentářem proč${D.samec_denik_od ? ' (eviduje se od ' + tDM(D.samec_denik_od) + ')' : ''}</div></div></div>`;
+  h += `<div class="ty-scroll"><table class="ty-tab"><thead><tr><th>SAMec</th><th>Dní SAMcem</th><th title="karty dokončené na nástěnce PROVOZ během jeho SAMec směny">✅ Na směně dokončeno</th><th title="karty založené během jeho směny">🆕 Přibylo</th><th title="úkoly s termínem v jeho den, které nebyly splněny">❌ Propadlo</th><th title="posun termínu na kartě během jeho směny: s komentářem = OK, bez komentáře = ⚠️">📅 Posunuto</th></tr></thead><tbody>`;
+  for (const r of rows) h += `<tr onclick="tSet('p','${r.osoba.replace(/'/g, "\\'")}')" class="${TP===r.osoba?'sel':''}"><td class="ty-n">${esc(r.osoba)}</td><td>${r.dni}</td><td><b>${r.hotovo}</b></td><td>${r.nove || '–'}</td><td>${r.propadle ? `<span class="ty-late">${r.propadle}</span>` : '0'}</td><td>${(r.posun_ok||0)+(r.posun_bez||0) ? `${r.posun_ok||0} 💬${r.posun_bez ? ` · <span class="ty-late">⚠️ ${r.posun_bez} bez komentáře</span>` : ''}` : '–'}</td></tr>`;
+  if (!rows.length) h += `<tr><td colspan="6" style="color:var(--muted)">V období nebyl SAMcem.</td></tr>`;
   h += `</tbody></table></div>`;
   if (late.length || dnes.length) {
     h += `<div class="ty-day" style="text-transform:none">⏰ Visí po termínu (${late.length})${dnes.length ? ' · dnes v termínu ' + dnes.length : ''}</div>`;
     for (const c of [...late, ...dnes]) h += `<div class="ty-row"><span class="ty-t">${c.short_url ? `<a href="${esc(c.short_url)}" target="_blank" rel="noopener">${esc(c.name)}</a>` : esc(c.name)}</span><span class="ty-meta">${esc(c.list_name || '')} · termín ${tDM(c.due_day)} · SAMec ${c.samec ? esc(c.samec) : '<span class="ty-late">nikdo</span>'} · ${c.dni > 0 ? `<span class="ty-late">${c.dni} ${c.dni === 1 ? 'den' : c.dni < 5 ? 'dny' : 'dní'} po termínu</span>` : 'dnes'}</span></div>`;
+  }
+  const pos = (D.samci_posuny || []).filter(p => mine(p.samec) && p.day >= (W && W.od ? W.od : ''));
+  if (pos.length) {
+    const nb = pos.filter(p => !p.komentar).length;
+    h += `<div class="ty-day" style="text-transform:none">📅 Posunuté termíny (${pos.length})${nb ? ` · <span class="ty-late">⚠️ ${nb} bez komentáře</span>` : ' · vše s komentářem ✔'}</div>`;
+    for (const p of pos) h += `<div class="ty-row"><span class="ty-t">${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)}</span><span class="ty-meta">${tDM(p.day)} · ${esc(p.list || '')} · ${esc(p.detail || '')} · posunul ${esc(p.kdo || '?')} · SAMec ${p.samec ? esc(p.samec) : '<span class="ty-late">nikdo</span>'}</span><span class="ty-meta" style="flex-basis:100%">${p.komentar ? '💬 ' + esc(p.komentar) : '<span class="ty-late">⚠️ bez komentáře – proč se úkol nestihl, není zapsáno</span>'}</span></div>`;
   }
   const dny = (D.samci_dny || []).filter(x => !TP || mine(x.samec));
   h += `<details class="ty-det"><summary class="ty-day" style="cursor:pointer;text-transform:none">📅 Po dnech (14 dní zpět + 7 dopředu) ▾</summary>`;
@@ -835,7 +841,7 @@ function samecHtml(W) {
     const fut = x.day > D.today, prop = x.propadle || [];
     const bez = !x.samec;
     h += `<div class="ty-row${x.day === D.today ? ' ty-today' : ''}"><span class="ty-t">${fmtDayCZ(x.day)}${x.day === D.today ? ' (dnes)' : ''} · ${bez ? '<span class="ty-late">⚠️ bez SAMce</span>' : esc(x.samec)}</span>
-      <span class="ty-meta">${fut ? (x.termin ? `📌 ${x.termin} s termínem` : 'naplánováno') : `✅ ${x.hotovo} · 🆕 ${x.nove}${prop.length ? ` · <span class="ty-late">❌ ${prop.length}</span>` : ''}${x.termin && x.day === D.today ? ` · 📌 dnes ${x.termin}` : ''}`}</span>
+      <span class="ty-meta">${fut ? (x.termin ? `📌 ${x.termin} s termínem` : 'naplánováno') : `✅ ${x.hotovo} · 🆕 ${x.nove}${prop.length ? ` · <span class="ty-late">❌ ${prop.length}</span>` : ''}${x.posun_ok ? ` · 📅 ${x.posun_ok} 💬` : ''}${x.posun_bez ? ` · <span class="ty-late">📅 ${x.posun_bez} bez komentáře</span>` : ''}${x.termin && x.day === D.today ? ` · 📌 dnes ${x.termin}` : ''}`}</span>
       ${prop.length ? `<span class="ty-meta" style="flex-basis:100%">❌ ${prop.map(p => p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)).join(' · ')}</span>` : ''}</div>`;
   }
   h += `</details></div>`;
