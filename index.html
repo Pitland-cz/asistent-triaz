@@ -127,8 +127,12 @@
   .ty-tr { font-size:11px; color:var(--muted); margin-left:4px; }
   .ty-tr.up { color:#2f8a3a; } .ty-tr.dn { color:#c0392b; }
   .ty-late { color:#c0392b; font-weight:700; }
-  .ty-day { font-size:12px; font-weight:700; color:var(--muted); margin:12px 0 4px; text-transform:capitalize; }
-  .ty-row { display:flex; flex-wrap:wrap; justify-content:space-between; gap:4px 10px; padding:6px 0; border-top:1px solid var(--border); font-size:13px; }
+  .ty-day { font-size:12px; font-weight:700; color:var(--muted); margin:14px 16px 4px; text-transform:capitalize; }
+  .ty-row { display:flex; flex-wrap:wrap; justify-content:space-between; gap:4px 12px; padding:8px 16px; border-top:1px solid var(--border); font-size:13px; }
+  .ty-tab th:first-child, .ty-tab td:first-child { padding-left:16px; }
+  .ty-tab th:last-child, .ty-tab td:last-child { padding-right:16px; }
+  .block > .frow { padding:0 16px; }
+  .ty-det > .ty-day:last-child, .block > .ty-row:last-child { margin-bottom:6px; }
   .ty-row .ty-t { flex:1 1 260px; }
   .ty-row .ty-meta { color:var(--muted); font-size:12px; }
   .ty-det > summary { list-style:none; cursor:pointer; }
