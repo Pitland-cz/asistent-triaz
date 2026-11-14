@@ -85,6 +85,19 @@
   .fchip.fq.on { background:#f0a83c; border-color:#f0a83c; }
   .fchip.fl.on { background:#7b5ea7; border-color:#7b5ea7; color:#fff; } .fchip.fl.on b { color:#fff; }
   @media (max-width:600px){ .t-row { flex-direction:column; } .t-actions { justify-content:flex-start; } }
+  .utools { align-items:center; }
+  .utools input, .utools select { height:34px; border:1px solid var(--border); border-radius:8px; background:var(--card); color:var(--text); font-size:13px; padding:0 10px; font-family:inherit; }
+  .utools input { flex:1 1 180px; min-width:0; }
+  .utools select { flex:0 1 auto; max-width:230px; color:var(--muted); font-weight:600; }
+  .utools input:focus, .utools select:focus { outline:none; border-color:var(--lime-dim); }
+  .ucap { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:9px 12px; margin-bottom:10px; font-size:13px; color:var(--muted); }
+  .ucap b { color:var(--text); font-size:15px; }
+  .ucap.over b.n { color:var(--red); } .ucap.ok b.n { color:var(--lime-ink); }
+  .ucap-bar { height:6px; border-radius:4px; background:var(--card2); margin-top:7px; overflow:hidden; }
+  .ucap-bar i { display:block; height:100%; border-radius:4px; background:var(--lime-dim); }
+  .ucap.over .ucap-bar { background:rgba(192,68,47,.28); }
+  .b-age { background:rgba(109,117,101,.12); color:var(--muted); }
+  .b-age.a30 { background:rgba(194,92,0,.13); color:#c25c00; } .b-age.a60 { background:rgba(192,68,47,.13); color:var(--red); }
   .task.done { opacity:.45; }
   .task.done .t-actions { display:none; }
   .result-tag { font-size:12px; font-weight:700; }
@@ -334,7 +347,13 @@
   </div>
   <div id="viewU" style="display:none">
     <p class="sub">✓✓ hotovo · <b>15min</b> = přesunout do patnáctiminutovek · <b>?/!</b> = odložit do „někdy / možná“ · ✗ zrušit · ✎ upravit. Číslo u tabu = jen skutečné úkoly (bez patnáctiminutovek a „někdy“). Filtr <b>🗓 K naplánování</b> = úkoly bez termínu — vyber datum a blok se zapíše do kalendáře při nejbližším běhu asistenta.</p>
+    <div id="ucap"></div>
     <div id="ufilters"></div>
+    <div class="frow utools">
+      <input id="uq" type="search" placeholder="🔍 hledat v úkolech (název, zadání, řešitel)…" oninput="renderU()">
+      <select id="uproj" title="Projekt" onchange="renderU()"><option value="">Všechny projekty</option></select>
+      <select id="usort" title="Řazení" onchange="uSetSort(this.value)"><option value="prio">Řadit: priorita</option><option value="old">Řadit: nejstarší</option><option value="new">Řadit: nejnovější</option></select>
+    </div>
     <div class="toolbar"><div class="count">Zobrazeno: <b id="cntO">–</b></div><button class="btn-ghost" onclick="loadAll()">↻ Obnovit</button></div>
     <div id="ublocks"><div class="spin">Načítám…</div></div>
     <div id="emptyU"><div class="big">🏁</div>Žádné otevřené úkoly.</div>
@@ -601,6 +620,8 @@ function taskRow(t, mode) {
   const dur = `<span class="badge" style="background:rgba(109,117,101,.12);color:var(--muted)">⏱ ${t.duration_min || 30} min</span>`;
   const cal = t.calendar_event_id ? '<span class="badge b-cal">📅 v kalendáři</span>' : '';
   const tdone = t.trello_done_at ? '<span class="badge" style="background:rgba(123,94,167,.16);color:#6a4d99">✅ hotovo v Trellu</span>' : '';
+  const ageD = t.created_at ? Math.floor((Date.now() - new Date(t.created_at).getTime()) / 86400000) : 0;
+  const age = ageD >= 7 ? `<span class="badge b-age${ageD >= 60 ? ' a60' : ageD >= 30 ? ' a30' : ''}" title="Úkol vznikl ${fmtDate(t.created_at)} — leží ${ageD} dní">🕓 ${ageD} d</span>` : '';
   const kind = t.status === 'nekdy' ? '<span class="badge b-later">?/! někdy</span>' : (t.quick ? '<span class="badge b-quick">⚡ 15min</span>' : '');
   const proj = (p => p ? `<span class="badge b-other" style="opacity:.7">${esc(p.name)}</span>` : '')(((mode==='T'?DATA:ODATA).projects||[]).find(p => p.id === t.project_id));
   const bQuick = `<button class="btn-quick" title="Patnáctiminutovka — krátká provozní věc, dělá se v hodinových blocích (není to otevřený úkol)" onclick="act('${t.id}','quick','${mode}')">15min</button>`;
@@ -618,7 +639,7 @@ function taskRow(t, mode) {
     <div class="t-row"><div style="flex:1;min-width:0">
       <div class="t-title">${esc(t.title)}</div>
       <div class="t-meta">
-        <span class="badge ${jno?'b-jno':'b-other'}">${jno?'👤 JNO':'👥 '+esc(t.owner)}</span>${prioBadge(t, mode)}${kind}${due}${dur}${cal}${tdone}${proj}
+        <span class="badge ${jno?'b-jno':'b-other'}">${jno?'👤 JNO':'👥 '+esc(t.owner)}</span>${prioBadge(t, mode)}${kind}${due}${age}${dur}${cal}${tdone}${proj}
         ${more}
         <span class="result-tag" id="${mode}res-${t.id}">${t._acted?resultTag(t._acted, t.id, mode):''}</span>
       </div>
@@ -677,7 +698,15 @@ const U_OPEN = ['schvaleny','bezi','ceka_na_nekoho'];
 const uReal = t => U_OPEN.includes(t.status) && !t.quick;          /* skutečný úkol */
 const uQuick = t => U_OPEN.includes(t.status) && !!t.quick;        /* patnáctiminutovka */
 const uLater = t => t.status === 'nekdy';                          /* někdy / možná */
-function ownerKey(t){ return isJNO(t.owner) ? 'JNO' : ((t.owner || '').trim() || '(nezadáno)'); }
+const U_CAP = 40;   /* cíl: nejvýš tolik vlastních otevřených úkolů (14. 11. 2026) */
+try { UF.sort = localStorage.getItem('uSort') || 'prio'; } catch(_) { UF.sort = 'prio'; }
+function uSetSort(v){ UF.sort = v; try { localStorage.setItem('uSort', v); } catch(_) {} renderU(); }
+/* víc řešitelů („Páťa + Martin“, „JNO / Kolegyně“) → úkol patří pod každého z nich; závorka za jménem se nebere */
+function ownerKeys(t){
+  const ks = [...new Set((t.owner || '').split(/\s*(?:\+|\/)\s*/).map(p => p.replace(/\s*\([^)]*\)\s*$/, '').trim()).filter(Boolean).map(p => isJNO(p) ? 'JNO' : p))];
+  return ks.length ? ks : ['JNO'];
+}
+function uNorm(s){ return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
 /* přepnutí filtru = „potvrzení“ rozpracovaných kliků: zmizí z původního seznamu a zařadí se, kam patří */
 function uCommit(){ for (const t of (ODATA.tasks||[])) { delete t._acted; delete t._prev; } }
 function setUFOwner(o){ UF.owner = (UF.owner === o ? null : o); uCommit(); renderU(); }
@@ -688,24 +717,44 @@ function uGroups() {
   const all = (ODATA.tasks || []).filter(t => uReal(t) || uQuick(t) || uLater(t));
   const real = all.filter(uReal);
   const byOwner = {};
-  for (const t of real) { const k = ownerKey(t); (byOwner[k] = byOwner[k] || []).push(t); }
+  for (const t of real) for (const k of ownerKeys(t)) (byOwner[k] = byOwner[k] || []).push(t);
   /* řešitelé s jediným úkolem (mimo JNO) → společná skupina „Ostatní" */
   const singles = new Set(Object.keys(byOwner).filter(k => k !== 'JNO' && byOwner[k].length === 1));
   const merge = singles.size > 1;
-  if (merge) { byOwner['Ostatní'] = []; for (const k of singles) { byOwner['Ostatní'].push(...byOwner[k]); delete byOwner[k]; } }
+  if (merge) { const s = new Set(); for (const k of singles) { byOwner[k].forEach(t => s.add(t)); delete byOwner[k]; } byOwner['Ostatní'] = [...s]; }
   const known = new Set(Object.keys(byOwner));
-  const groupKey = t => { const k = ownerKey(t); return (merge && singles.has(k)) ? 'Ostatní' : (known.has(k) ? k : (merge ? 'Ostatní' : k)); };
-  return { all, real, byOwner, groupKey };
+  const groupKeys = t => [...new Set(ownerKeys(t).map(k => known.has(k) && k !== 'Ostatní' ? k : (merge ? 'Ostatní' : k)))];
+  return { all, real, byOwner, groupKeys };
 }
 function renderUFilters() {
-  const { all, real, byOwner, groupKey } = uGroups();
+  const { all, real, byOwner, groupKeys } = uGroups();
   const today = todayISO(), weekISO = uWeekISO();
+  /* ukazatel stropu vlastních úkolů */
+  const mineN = real.filter(t => ownerKeys(t).includes('JNO') && t.status !== 'ceka_na_nekoho').length;
+  const over = mineN > U_CAP;
+  document.getElementById('ucap').innerHTML = `<div class="ucap ${over ? 'over' : 'ok'}">👤 Moje otevřené úkoly: <b class="n">${mineN}</b> / cíl <b>${U_CAP}</b>${over ? ` — o ${mineN - U_CAP} víc. Co není úkol na teď: <b>15min</b>, <b>?/!</b>, předat, nebo ✗.` : ' ✓ pod stropem'}<div class="ucap-bar"><i style="width:${Math.min(100, Math.round((over ? U_CAP / mineN : mineN / U_CAP) * 100))}%"></i></div></div>`;
   const owners = Object.keys(byOwner).sort((a,b) => a==='JNO' ? -1 : b==='JNO' ? 1 : a==='Ostatní' ? 1 : b==='Ostatní' ? -1 : byOwner[b].length - byOwner[a].length);
+  if (UF.owner !== null && !byOwner[UF.owner]) UF.owner = null;
   let rail = '<div class="frow">';
   rail += `<button class="fchip${UF.owner===null?' on':''}" onclick="setUFOwner(null)">Všichni <b>${real.length}</b></button>`;
   for (const o of owners) rail += `<button class="fchip${UF.owner===o?' on':''}" onclick="setUFOwner('${esc(o).replace(/'/g,"\\'")}')">${o==='JNO'?'👤 JNO':esc(o)} <b>${byOwner[o].length}</b></button>`;
   rail += '</div>';
-  const selAll = UF.owner === null ? all : all.filter(t => groupKey(t) === UF.owner);
+  const ownSel = UF.owner === null ? all : all.filter(t => groupKeys(t).includes(UF.owner));
+  /* projekt + hledání */
+  const psel = document.getElementById('uproj'); const pcur = psel.value;
+  const pcnt = {}; for (const t of ownSel) { const k = t.project_id || '_none'; pcnt[k] = (pcnt[k] || 0) + 1; }
+  const plist = (ODATA.projects || []).filter(p => pcnt[p.id]).sort((a,b) => pcnt[b.id] - pcnt[a.id]);
+  psel.innerHTML = `<option value="">Všechny projekty</option>` + plist.map(p => `<option value="${p.id}">${esc(p.name)} (${pcnt[p.id]})</option>`).join('') + (pcnt._none ? `<option value="_none">(bez projektu) (${pcnt._none})</option>` : '');
+  psel.value = [...psel.options].some(o => o.value === pcur) ? pcur : '';
+  document.getElementById('usort').value = UF.sort;
+  const q = uNorm(document.getElementById('uq').value.trim()); const pv = psel.value;
+  const words = q ? q.split(/\s+/) : [];
+  const selAll = ownSel.filter(t => {
+    if (pv && (pv === '_none' ? !!t.project_id : t.project_id !== pv)) return false;
+    if (!words.length) return true;
+    const hay = uNorm([t.title, t.detail, t.owner, t.source_quote].join(' '));
+    return words.every(w => hay.includes(w));
+  });
   const sel = selAll.filter(uReal);
   const cnt = {
     vse: sel.length,
@@ -722,11 +771,13 @@ function renderUFilters() {
   rail += '</div>';
   document.getElementById('ufilters').innerHTML = rail;
   updateTabU();
-  return { selAll, sel, today, weekISO };
+  return { selAll, sel, today, weekISO, filtered: !!(words.length || pv) };
 }
 function renderU() {
-  const { selAll, sel, today, weekISO } = renderUFilters();
+  const { selAll, sel, today, weekISO, filtered } = renderUFilters();
   const byCreated = (a,b) => (b.created_at||'').localeCompare(a.created_at||'');
+  const byOld = (a,b) => (a.created_at||'').localeCompare(b.created_at||'');
+  const sorter = UF.sort === 'old' ? byOld : UF.sort === 'new' ? byCreated : null;
   let secs;
   if (UF.view === 'quick') {
     secs = [{ title: '⚡ Patnáctiminutovky', items: selAll.filter(uQuick).sort(byCreated), keep: true,
@@ -765,7 +816,7 @@ function renderU() {
   let html = '';
   for (const s of secs) {
     if (!s.items.length) continue;
-    if (!s.keep) s.items = s.items.slice().sort(byPrio);
+    s.items = s.items.slice().sort(sorter || (s.keep ? byCreated : byPrio));
     html += `<div class="block"><div class="block-head"><div><div class="block-title">${s.title}</div>
       <div class="block-meta">${s.items.length} ${s.keep ? 'položek' : 'úkolů'}</div></div></div>`;
     for (const t of s.items) html += taskRow(t, 'U');
@@ -776,7 +827,7 @@ function renderU() {
   const n = document.querySelectorAll('#ublocks .task:not(.done)').length;
   document.getElementById('cntO').textContent = n;
   const em = document.getElementById('emptyU');
-  em.innerHTML = UF.view === 'quick' ? '<div class="big">⚡</div>Žádné patnáctiminutovky ve frontě.' : UF.view === 'nekdy' ? '<div class="big">💭</div>V „někdy / možná“ nic není.' : UF.view === 'plan' ? '<div class="big">🗓</div>Všechno má termín — není co plánovat.' : '<div class="big">🏁</div>Žádné otevřené úkoly.';
+  em.innerHTML = filtered ? '<div class="big">🔍</div>Nic neodpovídá hledání / projektu.' : UF.view === 'quick' ? '<div class="big">⚡</div>Žádné patnáctiminutovky ve frontě.' : UF.view === 'nekdy' ? '<div class="big">💭</div>V „někdy / možná“ nic není.' : UF.view === 'plan' ? '<div class="big">🗓</div>Všechno má termín — není co plánovat.' : '<div class="big">🏁</div>Žádné otevřené úkoly.';
   em.style.display = n === 0 ? 'block' : 'none';
   document.getElementById('ublocks').style.display = n === 0 ? 'none' : 'block';
 }
