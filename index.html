@@ -765,7 +765,6 @@ function renderL() {
   document.getElementById('llegend').innerHTML = leg;
   const evs = all.filter(e => (!LF.boards.length || LF.boards.includes(e.board)) && (!LF.types.length || LF.types.includes(e.event_type)));
   document.getElementById('cntLE').textContent = evs.length + (evs.length !== all.length ? ' / ' + all.length : '');
-  document.getElementById('cntL').textContent = all.length ? '(' + all.length + ')' : '';
   document.getElementById('emptyL').style.display = 'none';
   const byDay = {};
   for (const e of evs) (byDay[e.day] = byDay[e.day] || []).push(e);
@@ -855,6 +854,8 @@ function renderTym() {
   const L = {}; for (const r of TDATA.lidi) if (r.k === TW) L[r.resitel] = r;
   const K = {}; for (const r of TDATA.klik) if (r.k === TW) K[r.kdo_klikl] = r.n;
   const O = {}; for (const r of TDATA.otevrene) O[r.resitel] = r;
+  { const np = TDATA.otevrene.reduce((a, r) => a + (r.po_terminu || 0), 0), el = document.getElementById('cntL');
+    if (el) { el.textContent = np ? '(⏰ ' + np + ')' : ''; el.title = 'karty po termínu (aktivní sloupce, pohyb za 60 dní)'; } }
   const S = {}; for (const r of TDATA.smeny) if (r.k === TW) S[r.resitel] = r;
   const PO = {}; for (const r of (TDATA.posuny || [])) if (r.k === TW) PO[r.resitel] = r;
   const others = Object.keys(L).filter(n => !TKEY.includes(n) && ((L[n].hotovo + L[n].nove + L[n].hotovo_pred) > 0 || O[n])).sort((a, b) => (a === 'Nepřiřazeno') - (b === 'Nepřiřazeno') || a.localeCompare(b, 'cs'));
