@@ -243,6 +243,14 @@
   .m-fix { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:5px; font-size:12px; color:var(--text); }
   .m-log .t-title { font-size:13px; }
   .m-log .rt-no, .m-log .rt-ok { font-size:12px; font-weight:600; }
+  .m-infob { border-left:4px solid var(--lime); }
+  .m-info-read { opacity:.6; }
+  .m-tab { width:100%; border-collapse:collapse; margin-top:10px; font-size:13px; }
+  .m-tab td { border-top:1px solid var(--border); padding:7px 6px; vertical-align:top; line-height:1.45; }
+  .m-tab td.m-typ { font-weight:700; white-space:nowrap; width:1%; }
+  .m-tab td.m-poc { text-align:center; font-weight:700; width:1%; color:var(--muted); }
+  .m-dok { font-size:13px; margin-top:8px; padding:7px 10px; background:var(--bg); border-radius:8px; }
+  @media (max-width:600px){ .m-tab td.m-typ{ white-space:normal; } }
 </style>
 </head>
 <body>
@@ -1057,19 +1065,39 @@ function renderM() {
   const done = items.filter(i => ['odeslano','delegovano','archivovano','zamitnuto'].includes(i.status));
   const unchecked = logs.filter(l => !l.verdict);
   const need = act.filter(i=>i.status!=='odpovezeno').length + nej.filter(i=>i.status!=='odpovezeno').length;
-  document.getElementById('cntM').textContent = (need + unchecked.length) ? '(' + (need + unchecked.length) + ')' : '';
+  const infoN = (MDATA.info||[]).filter(b=>!b.read_at).length;
+  document.getElementById('cntM').textContent = (need + unchecked.length + infoN) ? '(' + (need + unchecked.length + infoN) + ')' : '';
   document.getElementById('cntMA').textContent = need;
   const runs = MDATA.runs || [];
   document.getElementById('mrun').textContent = runs.length ? 'poslední běh ' + mFmt(runs[0].finished_at || runs[0].started_at) : 'zatím žádný běh';
-  let h = '';
+  let h = mInfoHtml(MDATA.info || []);
   if (act.length) h += `<div class="m-sec">✍️ K odpovědi / delegaci <span>${act.length}</span></div>` + act.map(mCard).join('');
   if (nej.length) h += `<div class="m-sec">❓ Nejisté — potřebuju tvoje slovo <span>${nej.length}</span></div>` + nej.map(mCard).join('');
   if (wait.length) h += `<div class="m-sec">⏳ Čeká na provedení v Gmailu (do 15 min) <span>${wait.length}</span></div>` + wait.map(mWait).join('');
   h += mLogHtml(logs);
   if (done.length) h += `<div class="m-sec m-click" onclick="MDONE=!MDONE;renderM()">✅ Vyřízeno za 3 dny <span>${done.length}</span> ${MDONE?'▾':'▸'}</div>` + (MDONE ? done.map(mWait).join('') : '');
   document.getElementById('mblocks').innerHTML = h;
-  document.getElementById('emptyM').style.display = (items.length || logs.length) ? 'none' : 'block';
+  document.getElementById('emptyM').style.display = (items.length || logs.length || (MDATA.info||[]).length) ? 'none' : 'block';
 }
+function mDM(d){ if(!d) return ''; const p=d.split('-'); return (+p[2])+'. '+(+p[1])+'.'; }
+function mInfoHtml(blocks) {
+  if (!blocks.length) return '';
+  const open = blocks.filter(b => !b.read_at), read = blocks.filter(b => b.read_at);
+  let h = `<div class="m-sec">ℹ️ Pro info <span>${open.length}</span></div>`;
+  for (const b of [...open, ...read]) {
+    const ico = b.kind === 'doklady' ? '🧾' : (b.kind === 'notifikace' ? '🔔' : 'ℹ️');
+    const per = b.period_from ? (b.period_from === b.period_to ? mDM(b.period_from) : mDM(b.period_from) + ' – ' + mDM(b.period_to)) : '';
+    const tot = b.kind==='doklady' ? (b.rows||[]).length : (b.rows||[]).reduce((a,r)=>a+(+r.pocet||0),0);
+    if (b.read_at) { h += `<div class="m-card m-mini m-info-read"><div class="m-head"><div class="m-from">${ico} ${esc(b.title)} <span class="m-mail">${per} · ${tot}</span></div><div class="m-date">✓ přečteno <button class="undo" onclick="mInfoRead('${b.id}',false)">vrátit</button></div></div></div>`; continue; }
+    h += `<div class="m-card m-infob"><div class="m-head"><div class="m-from">${ico} ${esc(b.title)}</div><div class="m-date">${per}</div></div>
+      ${b.kind==='doklady' && b.doklady_count!=null ? `<div class="m-dok">📁 Ve složce Doklady je teď <b>${b.doklady_count}</b> e-mailů</div>` : ''}
+      <table class="m-tab">${(b.rows||[]).map(r => `<tr><td class="m-typ">${esc(r.typ||'')}</td><td class="m-poc">${esc(String(r.pocet??''))}</td><td>${esc(r.detail||'')}</td></tr>`).join('')}</table>
+      ${b.note ? `<div class="m-why">${esc(b.note)}</div>` : ''}
+      <div class="m-btns"><button class="hb m-ok" onclick="mInfoRead('${b.id}',true)">✓ Přečteno</button></div></div>`;
+  }
+  return h;
+}
+function mInfoRead(id, on){ mDo({ action: on ? 'm_info_read' : 'm_info_unread', id }, on ? '✓ Přečteno' : ''); }
 function mHead(i) {
   const cat = { odpoved:'<span class="badge b-jno">odpovědět</span>', delegace:'<span class="badge b-other">delegovat</span>', nejiste:'<span class="badge" style="background:rgba(240,179,90,.25);color:#8a5a12">nejisté</span>', info:'<span class="badge">info</span>' }[i.category] || '';
   const pr = (i.priority||3) <= 2 ? `<span class="badge b-due">P${i.priority}</span>` : '';
