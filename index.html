@@ -67,6 +67,24 @@
   .btn-edit:hover { color:var(--text); border-color:var(--muted); }
   .btn-plan { background:transparent; color:var(--lime-ink); height:34px; padding:0 10px; font-size:13px; border:1px solid var(--lime-dim); white-space:nowrap; }
   .btn-plan:hover { background:var(--lime); color:var(--text); }
+  .btn-quick { background:rgba(240,160,40,.13); color:#9a5b00; height:34px; padding:0 8px; font-size:12px; border:1px solid rgba(200,130,20,.4); white-space:nowrap; }
+  .btn-quick:hover { background:#f0a83c; color:#111; }
+  .btn-later { background:rgba(123,94,167,.10); color:#6a4d99; width:38px; height:34px; font-size:13px; border:1px solid rgba(123,94,167,.35); letter-spacing:-.5px; }
+  .btn-later:hover { background:#7b5ea7; color:#fff; }
+  .btn-back { background:rgba(190,230,80,.25); color:var(--lime-ink); height:34px; padding:0 10px; font-size:12px; border:1px solid rgba(120,160,30,.35); white-space:nowrap; }
+  .btn-back:hover { background:var(--lime); color:#111; }
+  .prio-sel { -webkit-appearance:none; appearance:none; border:none; border-radius:20px; font-size:11px; font-weight:700; padding:2px 18px 2px 8px; cursor:pointer; font-family:inherit; background-repeat:no-repeat; background-position:right 6px center; background-size:7px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236d7565' stroke-width='1.6'/%3E%3C/svg%3E"); }
+  .prio-sel:focus { outline:2px solid var(--lime); }
+  .plan-date { height:34px; border:1px solid var(--lime-dim); border-radius:8px; background:var(--card); color:var(--lime-ink); font-size:12px; font-weight:600; padding:0 6px; font-family:inherit; max-width:140px; }
+  .b-quick { background:rgba(240,160,40,.16); color:#9a5b00; }
+  .b-later { background:rgba(123,94,167,.14); color:#6a4d99; }
+  .rt-later { color:#6a4d99; } .rt-quick { color:#9a5b00; }
+  .t-detail { margin-top:6px; font-size:12.5px; color:var(--text); line-height:1.5; display:none; white-space:pre-wrap; }
+  .task.open .t-detail { display:block; }
+  .fsep { width:1px; background:var(--border); margin:2px 4px; }
+  .fchip.fq.on { background:#f0a83c; border-color:#f0a83c; }
+  .fchip.fl.on { background:#7b5ea7; border-color:#7b5ea7; color:#fff; } .fchip.fl.on b { color:#fff; }
+  @media (max-width:600px){ .t-row { flex-direction:column; } .t-actions { justify-content:flex-start; } }
   .task.done { opacity:.45; }
   .task.done .t-actions { display:none; }
   .result-tag { font-size:12px; font-weight:700; }
@@ -302,7 +320,7 @@
   </div>
 
   <div id="viewT">
-    <p class="sub">✓ schválit · ✓✓ hotovo · ✗ zamítnout · ✎ upravit. Datum+čas u schválení → propíše se do kalendáře.</p>
+    <p class="sub">✓ schválit · ✓✓ hotovo · <b>15min</b> = patnáctiminutovka (provozní agenda, ne úkol) · <b>?/!</b> = někdy / možná · ✗ zamítnout · ✎ upravit. Datum+čas u schválení → propíše se do kalendáře.</p>
     <div class="toolbar"><div class="count">K triáži: <b id="cnt">–</b></div><button class="btn-ghost" onclick="loadAll()">↻ Obnovit</button></div>
     <div id="blocks"><div class="spin">Načítám…</div></div>
     <div id="empty"><div class="big">🎉</div>Vše vyřízeno. Žádné úkoly nečekají na triáž.</div>
@@ -315,7 +333,7 @@
     <div id="emptyM" style="text-align:center;padding:60px 20px;color:var(--muted);display:none"><div class="big">📭</div>Nic k vyřízení — doručená je čistá.</div>
   </div>
   <div id="viewU" style="display:none">
-    <p class="sub">✓✓ hotovo · ✎ upravit (i termín a čas). Termín s časem = event v kalendáři, jen datum = celodenní poznámka (zapíše nejbližší běh asistenta).</p>
+    <p class="sub">✓✓ hotovo · <b>15min</b> = přesunout do patnáctiminutovek · <b>?/!</b> = odložit do „někdy / možná“ · ✗ zrušit · ✎ upravit. Číslo u tabu = jen skutečné úkoly (bez patnáctiminutovek a „někdy“). Filtr <b>🗓 K naplánování</b> = úkoly bez termínu — vyber datum a blok se zapíše do kalendáře při nejbližším běhu asistenta.</p>
     <div id="ufilters"></div>
     <div class="toolbar"><div class="count">Zobrazeno: <b id="cntO">–</b></div><button class="btn-ghost" onclick="loadAll()">↻ Obnovit</button></div>
     <div id="ublocks"><div class="spin">Načítám…</div></div>
@@ -369,6 +387,12 @@ async function call(payload) {
   if (r.status === 401) throw new Error('unauthorized');
   return r.json();
 }
+const UEP = 'https://dltopsftcmkxqrcobgrc.supabase.co/functions/v1/asist-ukoly';
+async function ucall(payload) {
+  const r = await fetch(UEP, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ access: ACCESS, ...payload }) });
+  if (r.status === 401) throw new Error('unauthorized');
+  return r.json();
+}
 async function detectRole() {
   const w = await call({action:'whoami'});
   ROLE = w.role || 'JNO';
@@ -413,7 +437,7 @@ async function loadAll(throwErr) {
   }
   call({action:'sh_list'}).then(d => { HDATA = d; renderH(); }).catch(() => {});
   try {
-    [DATA, ODATA, PDATA, LDATA, BDATA] = await Promise.all([call({action:'list'}), call({action:'list_open'}), call({action:'list_projects'}), call({action:'list_trello'}).catch(()=>({events:[]})), call({action:'get_brief'}).catch(()=>({brief:null}))]);
+    [DATA, ODATA, PDATA, LDATA, BDATA] = await Promise.all([call({action:'list'}), ucall({action:'list_open'}), call({action:'list_projects'}), call({action:'list_trello'}).catch(()=>({events:[]})), call({action:'get_brief'}).catch(()=>({brief:null}))]);
   } catch(e) {
     if (throwErr) throw e;
     toast('Chyba: ' + e.message); return;
@@ -425,7 +449,7 @@ async function loadAll(throwErr) {
   tReload(true);
   if (firstLoad) { firstLoad = false; if (BDATA && BDATA.brief && BDATA.brief.brief_date === todayISO()) showTab('D'); }
   document.getElementById('cntT').textContent = '(' + (DATA.tasks||[]).length + ')';
-  document.getElementById('cntU').textContent = '(' + (ODATA.tasks||[]).length + ')';
+  updateTabU();
   const navr = (PDATA.projects||[]).filter(p => p.status === 'navrzeny').length;
   document.getElementById('cntP').textContent = navr ? '(' + navr + ')' : '';
 }
@@ -550,18 +574,23 @@ async function actProj(id, status) {
 
 /* ---------- priorita (rámec P1–P5, 24. 8. 2026) ---------- */
 const PRIO = {1:['P1','#b3261e','rgba(179,38,30,.14)'],2:['P2','#c25c00','rgba(194,92,0,.14)'],3:['P3','#8a7500','rgba(180,155,0,.16)'],4:['P4','#2e7d32','rgba(46,125,50,.13)'],5:['P5','#5f6368','rgba(95,99,104,.13)']};
+function prioStyle(p) { const c = PRIO[p] || ['P·','#9aa0a6','rgba(154,160,166,.12)']; return `background-color:${c[2]};color:${c[1]}`; }
+const PRIO_LBL = {1:'P1 · bezpečnost',2:'P2 · zákazník / peníze',3:'P3 · blokuje ostatní',4:'P4 · rutina',5:'P5 · rozvoj'};
 function prioBadge(t, mode) {
-  const p = t.priority; const c = PRIO[p] || ['P·','#9aa0a6','rgba(154,160,166,.12)'];
-  return `<button class="badge" title="Priorita (1 = nejvyšší) — klikem měníš, po P5 se vypne" style="background:${c[2]};color:${c[1]};border:none;cursor:pointer;font-weight:700" onclick="cyclePrio('${t.id}','${mode}')">${p ? c[0] : 'P·'}</button>`;
+  const p = t.priority || '';
+  let o = `<option value=""${!p?' selected':''}>P· bez priority</option>`;
+  for (let i = 1; i <= 5; i++) o += `<option value="${i}"${p===i?' selected':''}>${PRIO_LBL[i]}</option>`;
+  return `<select class="prio-sel" title="Priorita (1 = nejvyšší)" style="${prioStyle(t.priority)}" onchange="setPrio('${t.id}', this)">${o}</select>`;
 }
-async function cyclePrio(id, mode) {
+/* změna priority NEpřekresluje seznam — úkol zůstane na místě (14. 11. 2026) */
+async function setPrio(id, el) {
   const t = findTask(id); if (!t) return;
-  const next = !t.priority ? 1 : (t.priority >= 5 ? null : t.priority + 1);
+  const next = el.value === '' ? null : parseInt(el.value);
   try {
-    const res = await call({ action:'update', id, status: t.status, priority: next === null ? '' : next });
+    const res = await ucall({ action:'update', id, priority: next === null ? '' : next });
     if (res.error) throw new Error(res.error);
-    t.priority = next; renderT(); renderU();
-  } catch(e) { toast('Chyba: ' + e.message); }
+    t.priority = next; el.style.cssText = prioStyle(next);
+  } catch(e) { el.value = t.priority || ''; toast('Chyba: ' + e.message); }
 }
 const byPrio = (a,b) => ((a.priority||9)-(b.priority||9)) || ((a.due_date||'9999').localeCompare(b.due_date||'9999'));
 
@@ -572,28 +601,33 @@ function taskRow(t, mode) {
   const dur = `<span class="badge" style="background:rgba(109,117,101,.12);color:var(--muted)">⏱ ${t.duration_min || 30} min</span>`;
   const cal = t.calendar_event_id ? '<span class="badge b-cal">📅 v kalendáři</span>' : '';
   const tdone = t.trello_done_at ? '<span class="badge" style="background:rgba(123,94,167,.16);color:#6a4d99">✅ hotovo v Trellu</span>' : '';
+  const kind = t.status === 'nekdy' ? '<span class="badge b-later">?/! někdy</span>' : (t.quick ? '<span class="badge b-quick">⚡ 15min</span>' : '');
   const proj = (p => p ? `<span class="badge b-other" style="opacity:.7">${esc(p.name)}</span>` : '')(((mode==='T'?DATA:ODATA).projects||[]).find(p => p.id === t.project_id));
-  const triageBtns = `
-    <button class="btn-ok" title="Schválit" onclick="act('${t.id}','schvaleny','${mode}')">✓</button>
-    <button class="btn-done" title="Hotovo (schválit a uzavřít)" onclick="act('${t.id}','hotovo','${mode}')">✓✓</button>
-    <button class="btn-no" title="Zamítnout" onclick="act('${t.id}','zamitnuty','${mode}')">✗</button>`;
-  const openBtns = `
-    <button class="btn-done" title="Hotovo" onclick="act('${t.id}','hotovo','${mode}')">✓✓</button>
-    <button class="btn-no" title="Zrušit úkol" onclick="act('${t.id}','zamitnuty','${mode}')">✗</button>`;
-  const planBtn = (mode==='U' && !t.due_date) ? `<button class="btn-plan" title="Naplánovat termín" onclick="editTask('${t.id}','${mode}')">📅 Naplánovat</button>` : '';
-  return `<div class="task${t._acted?' done':''}" id="${mode}t-${t.id}"${t._prevStatus?` data-prev="${esc(t._prevStatus)}"`:''}>
-    <div class="t-row"><div style="flex:1">
+  const bQuick = `<button class="btn-quick" title="Patnáctiminutovka — krátká provozní věc, dělá se v hodinových blocích (není to otevřený úkol)" onclick="act('${t.id}','quick','${mode}')">15min</button>`;
+  const bLater = `<button class="btn-later" title="Někdy / možná / bylo by hezké — odložit mimo úkoly" onclick="act('${t.id}','nekdy','${mode}')">?/!</button>`;
+  const bDone = `<button class="btn-done" title="Hotovo" onclick="act('${t.id}','hotovo','${mode}')">✓✓</button>`;
+  const bNo = `<button class="btn-no" title="${mode==='T'?'Zamítnout':'Zrušit úkol'}" onclick="act('${t.id}','zamitnuty','${mode}')">✗</button>`;
+  let btns;
+  if (mode === 'T') btns = `<button class="btn-ok" title="Schválit jako úkol" onclick="act('${t.id}','schvaleny','${mode}')">✓</button>${bDone}${bQuick}${bLater}${bNo}`;
+  else if (t.status === 'nekdy') btns = `<button class="btn-back" title="Vrátit mezi úkoly" onclick="act('${t.id}','schvaleny','${mode}')">↩ úkol</button>${bQuick}${bDone}${bNo}`;
+  else if (t.quick) btns = `${bDone}<button class="btn-back" title="Je to větší věc — vrátit mezi úkoly" onclick="act('${t.id}','unquick','${mode}')">↩ úkol</button>${bLater}${bNo}`;
+  else btns = `${bDone}${bQuick}${bLater}${bNo}`;
+  const planBtn = (mode==='U' && !t.due_date && t.status !== 'nekdy' && !t.quick) ? `<input type="date" class="plan-date" title="Naplánovat — vyber den (čas a délku doladíš přes ✎)" min="${todayISO()}" onchange="act('${t.id}',{plan:this.value},'${mode}')">` : '';
+  const more = (t.detail || t.source_quote) ? `<button class="t-quote-toggle" onclick="document.getElementById('${mode}t-${t.id}').classList.toggle('open')">${t.detail ? 'detail' : 'citace'}</button>` : '';
+  return `<div class="task${t._acted?' done':''}" id="${mode}t-${t.id}">
+    <div class="t-row"><div style="flex:1;min-width:0">
       <div class="t-title">${esc(t.title)}</div>
       <div class="t-meta">
-        <span class="badge ${jno?'b-jno':'b-other'}">${jno?'👤 JNO':'👥 '+esc(t.owner)}</span>${prioBadge(t, mode)}${due}${dur}${cal}${tdone}${proj}
-        ${t.source_quote?`<button class="t-quote-toggle" onclick="document.getElementById('${mode}t-${t.id}').classList.toggle('open')">citace</button>`:''}
+        <span class="badge ${jno?'b-jno':'b-other'}">${jno?'👤 JNO':'👥 '+esc(t.owner)}</span>${prioBadge(t, mode)}${kind}${due}${dur}${cal}${tdone}${proj}
+        ${more}
         <span class="result-tag" id="${mode}res-${t.id}">${t._acted?resultTag(t._acted, t.id, mode):''}</span>
       </div>
+      ${t.detail?`<div class="t-detail">${esc(t.detail)}</div>`:''}
       ${t.source_quote?`<div class="quote">„${esc(t.source_quote)}"</div>`:''}
     </div>
     <div class="t-actions">
       ${planBtn}<button class="btn-edit" title="Upravit (název, řešitel, termín, čas)" onclick="editTask('${t.id}','${mode}')">✎</button>
-      ${mode==='T' ? triageBtns : openBtns}
+      ${btns}
     </div></div>
     <div class="edit-form" id="${mode}ef-${t.id}">
       <label>Název úkolu</label><input type="text" id="${mode}et-${t.id}">
@@ -617,7 +651,7 @@ function renderT() {
   const keys = Object.keys(groups).sort((a,b) => ((recs[b]||{}).recorded_at||'').localeCompare((recs[a]||{}).recorded_at||''));
   let html = '', letter = 65;
   for (const k of keys) {
-    const r = recs[k]; const ts = groups[k].slice().sort(byPrio);
+    const r = recs[k]; const ts = groups[k]; /* pořadí jak přišly — změna priority nic nepřeskládá */
     const jnoCnt = ts.filter(t=>isJNO(t.owner)).length;
     const L = String.fromCharCode(letter++);
     html += `<div class="block" data-block="${k}">
@@ -639,60 +673,77 @@ function updateCount() {
 
 /* ---------- Úkoly ---------- */
 let UF = { owner: 'JNO', view: 'vse' };
+const U_OPEN = ['schvaleny','bezi','ceka_na_nekoho'];
+const uReal = t => U_OPEN.includes(t.status) && !t.quick;          /* skutečný úkol */
+const uQuick = t => U_OPEN.includes(t.status) && !!t.quick;        /* patnáctiminutovka */
+const uLater = t => t.status === 'nekdy';                          /* někdy / možná */
 function ownerKey(t){ return isJNO(t.owner) ? 'JNO' : ((t.owner || '').trim() || '(nezadáno)'); }
-function setUFOwner(o){ UF.owner = (UF.owner === o ? null : o); renderU(); }
-function setUFView(v){ UF.view = v; renderU(); }
-function renderU() {
-  const ts = ODATA.tasks || [];
-  const today = todayISO();
-  const week = new Date(); week.setDate(week.getDate() + 7);
-  const weekISO = week.getFullYear()+'-'+String(week.getMonth()+1).padStart(2,'0')+'-'+String(week.getDate()).padStart(2,'0');
-
-  /* --- rozdělovník řešitelů --- */
+/* přepnutí filtru = „potvrzení“ rozpracovaných kliků: zmizí z původního seznamu a zařadí se, kam patří */
+function uCommit(){ for (const t of (ODATA.tasks||[])) { delete t._acted; delete t._prev; } }
+function setUFOwner(o){ UF.owner = (UF.owner === o ? null : o); uCommit(); renderU(); }
+function setUFView(v){ UF.view = v; uCommit(); renderU(); }
+function updateTabU(){ document.getElementById('cntU').textContent = '(' + (ODATA.tasks||[]).filter(uReal).length + ')'; }
+function uWeekISO(){ const w = new Date(); w.setDate(w.getDate() + 7); return w.getFullYear()+'-'+String(w.getMonth()+1).padStart(2,'0')+'-'+String(w.getDate()).padStart(2,'0'); }
+function uGroups() {
+  const all = (ODATA.tasks || []).filter(t => uReal(t) || uQuick(t) || uLater(t));
+  const real = all.filter(uReal);
   const byOwner = {};
-  for (const t of ts) { const k = ownerKey(t); (byOwner[k] = byOwner[k] || []).push(t); }
+  for (const t of real) { const k = ownerKey(t); (byOwner[k] = byOwner[k] || []).push(t); }
   /* řešitelé s jediným úkolem (mimo JNO) → společná skupina „Ostatní" */
   const singles = new Set(Object.keys(byOwner).filter(k => k !== 'JNO' && byOwner[k].length === 1));
-  if (singles.size > 1) {
-    byOwner['Ostatní'] = [];
-    for (const k of singles) { byOwner['Ostatní'].push(...byOwner[k]); delete byOwner[k]; }
-  }
-  const groupKey = t => { const k = ownerKey(t); return (singles.size > 1 && singles.has(k)) ? 'Ostatní' : k; };
+  const merge = singles.size > 1;
+  if (merge) { byOwner['Ostatní'] = []; for (const k of singles) { byOwner['Ostatní'].push(...byOwner[k]); delete byOwner[k]; } }
+  const known = new Set(Object.keys(byOwner));
+  const groupKey = t => { const k = ownerKey(t); return (merge && singles.has(k)) ? 'Ostatní' : (known.has(k) ? k : (merge ? 'Ostatní' : k)); };
+  return { all, real, byOwner, groupKey };
+}
+function renderUFilters() {
+  const { all, real, byOwner, groupKey } = uGroups();
+  const today = todayISO(), weekISO = uWeekISO();
   const owners = Object.keys(byOwner).sort((a,b) => a==='JNO' ? -1 : b==='JNO' ? 1 : a==='Ostatní' ? 1 : b==='Ostatní' ? -1 : byOwner[b].length - byOwner[a].length);
   let rail = '<div class="frow">';
-  rail += `<button class="fchip${UF.owner===null?' on':''}" onclick="setUFOwner(null)">Všichni <b>${ts.length}</b></button>`;
+  rail += `<button class="fchip${UF.owner===null?' on':''}" onclick="setUFOwner(null)">Všichni <b>${real.length}</b></button>`;
   for (const o of owners) rail += `<button class="fchip${UF.owner===o?' on':''}" onclick="setUFOwner('${esc(o).replace(/'/g,"\\'")}')">${o==='JNO'?'👤 JNO':esc(o)} <b>${byOwner[o].length}</b></button>`;
   rail += '</div>';
-
-  /* --- výběr podle řešitele --- */
-  const sel = UF.owner === null ? ts : ts.filter(t => groupKey(t) === UF.owner);
-
-  /* --- filtr stavu --- */
+  const selAll = UF.owner === null ? all : all.filter(t => groupKey(t) === UF.owner);
+  const sel = selAll.filter(uReal);
   const cnt = {
     vse: sel.length,
     propadle: sel.filter(t => t.due_date && t.due_date < today).length,
     dnes: sel.filter(t => t.due_date === today).length,
     tyden: sel.filter(t => t.due_date && t.due_date > today && t.due_date <= weekISO).length,
-    todo: sel.filter(t => !t.due_date).length,
+    plan: sel.filter(t => !t.due_date).length,
+    quick: selAll.filter(uQuick).length,
+    nekdy: selAll.filter(uLater).length,
   };
-  const V = [ ['vse','Vše'], ['propadle','🔴 Propadlé'], ['dnes','📆 Dnes'], ['tyden','📅 Týden'], ['todo','📥 TO DO'] ];
+  const V = [ ['vse','Vše',''], ['propadle','🔴 Propadlé',''], ['dnes','📆 Dnes',''], ['tyden','📅 Týden',''], ['plan','🗓 K naplánování',''], ['|'], ['quick','⚡ 15min',' fq'], ['nekdy','?/! Někdy',' fl'] ];
   rail += '<div class="frow">';
-  for (const [k,l] of V) rail += `<button class="fchip f2${UF.view===k?' on':''}" onclick="setUFView('${k}')">${l} <b>${cnt[k]}</b></button>`;
+  for (const [k,l,c] of V) rail += k === '|' ? '<span class="fsep"></span>' : `<button class="fchip f2${c}${UF.view===k?' on':''}" onclick="setUFView('${k}')">${l} <b>${cnt[k]}</b></button>`;
   rail += '</div>';
   document.getElementById('ufilters').innerHTML = rail;
-
-  /* --- sekce --- */
+  updateTabU();
+  return { selAll, sel, today, weekISO };
+}
+function renderU() {
+  const { selAll, sel, today, weekISO } = renderUFilters();
+  const byCreated = (a,b) => (b.created_at||'').localeCompare(a.created_at||'');
   let secs;
-  if (UF.view !== 'vse') {
+  if (UF.view === 'quick') {
+    secs = [{ title: '⚡ Patnáctiminutovky', items: selAll.filter(uQuick).sort(byCreated), keep: true,
+      note: 'Provozní agenda — nepočítá se mezi otevřené úkoly. V kalendáři jí patří společný blok „Patnáctiminutovky“ (hodina ≈ 4 věci). ✓✓ odškrtni, ↩ úkol = je to větší věc.' }];
+  } else if (UF.view === 'nekdy') {
+    secs = [{ title: '?/! Někdy / možná / bylo by hezké', items: selAll.filter(uLater).sort(byCreated), keep: true,
+      note: 'Odložené nápady bez závazku — nejsou v kalendáři ani v počtech. ↩ úkol = vrátit mezi úkoly, ✗ = zahodit.' }];
+  } else if (UF.view !== 'vse') {
     const f = {
       propadle: t => t.due_date && t.due_date < today,
       dnes: t => t.due_date === today,
       tyden: t => t.due_date && t.due_date > today && t.due_date <= weekISO,
-      todo: t => !t.due_date,
+      plan: t => !t.due_date,
     }[UF.view];
-    const titles = { propadle: '🔴 Propadlé', dnes: '📆 Dnes', tyden: '📅 Tento týden', todo: '📥 TO DO — bez termínu' };
-    secs = [{ title: titles[UF.view], items: sel.filter(f).sort(byPrio),
-      note: UF.view === 'todo' ? 'Přes ✎ nebo 📅 přidej termín — zapíše se do kalendáře.' : null }];
+    const titles = { propadle: '🔴 Propadlé', dnes: '📆 Dnes', tyden: '📅 Tento týden', plan: '🗓 K naplánování — bez termínu' };
+    secs = [{ title: titles[UF.view], items: sel.filter(f),
+      note: UF.view === 'plan' ? 'Jednou týdně: u každého úkolu vyber den (pole s datem) → asistent ho zapíše do kalendáře. Co není úkol na teď: 15min nebo ?/!.' : null }];
   } else if (UF.owner !== null && UF.owner !== 'JNO') {
     secs = [
       { title: '🔴 Propadlé a dnes', items: sel.filter(t => t.due_date && t.due_date <= today), note: null },
@@ -707,16 +758,16 @@ function renderU() {
       { title: '🔴 Propadlé a dnes', items: mine.filter(t => t.due_date && t.due_date <= today), note: null },
       { title: '📅 Tento týden', items: mine.filter(t => t.due_date && t.due_date > today && t.due_date <= weekISO), note: null },
       { title: '🗓 Později', items: mine.filter(t => t.due_date && t.due_date > weekISO), note: null },
-      { title: '📥 TO DO — k naplánování (bez termínu)', items: mine.filter(t => !t.due_date), note: 'Přes ✎ přidej termín (a případně čas) — zapíše se do kalendáře.' },
+      { title: '🗓 K naplánování (bez termínu)', items: mine.filter(t => !t.due_date), note: 'Vyber den v poli s datem (čas a délku doladíš přes ✎) — zapíše se do kalendáře.' },
       { title: '👥 Čeká na ostatní', items: waiting, note: 'Úkoly zadané jiným + věci, na které čekáš. ✓✓ uzavře, ✎ upraví.' },
     ];
   }
   let html = '';
   for (const s of secs) {
     if (!s.items.length) continue;
-    s.items = s.items.slice().sort(byPrio);
+    if (!s.keep) s.items = s.items.slice().sort(byPrio);
     html += `<div class="block"><div class="block-head"><div><div class="block-title">${s.title}</div>
-      <div class="block-meta">${s.items.length} úkolů</div></div></div>`;
+      <div class="block-meta">${s.items.length} ${s.keep ? 'položek' : 'úkolů'}</div></div></div>`;
     for (const t of s.items) html += taskRow(t, 'U');
     if (s.note) html += `<div class="sec-note">${s.note}</div>`;
     html += '</div>';
@@ -724,7 +775,9 @@ function renderU() {
   document.getElementById('ublocks').innerHTML = html;
   const n = document.querySelectorAll('#ublocks .task:not(.done)').length;
   document.getElementById('cntO').textContent = n;
-  document.getElementById('emptyU').style.display = n === 0 ? 'block' : 'none';
+  const em = document.getElementById('emptyU');
+  em.innerHTML = UF.view === 'quick' ? '<div class="big">⚡</div>Žádné patnáctiminutovky ve frontě.' : UF.view === 'nekdy' ? '<div class="big">💭</div>V „někdy / možná“ nic není.' : UF.view === 'plan' ? '<div class="big">🗓</div>Všechno má termín — není co plánovat.' : '<div class="big">🏁</div>Žádné otevřené úkoly.';
+  em.style.display = n === 0 ? 'block' : 'none';
   document.getElementById('ublocks').style.display = n === 0 ? 'none' : 'block';
 }
 
@@ -936,37 +989,50 @@ function renderTym() {
 
 /* ---------- actions ---------- */
 function findTask(id){ return [...(DATA&&DATA.tasks||[]), ...(ODATA&&ODATA.tasks||[])].find(t => t.id === id); }
-function resultTag(status, id, mode) {
-  const tag = status === 'schvaleny' ? '<span class="rt-ok">schváleno</span>'
-    : status === 'hotovo' ? '<span class="rt-done">hotovo</span>'
-    : '<span class="rt-no">zamítnuto</span>';
+function resultTag(what, id, mode) {
+  const w = (what && what.plan) ? 'plan' : what;
+  const tag = w === 'schvaleny' ? '<span class="rt-ok">' + (mode==='T' ? 'schváleno' : 'vráceno mezi úkoly') + '</span>'
+    : w === 'hotovo' ? '<span class="rt-done">hotovo</span>'
+    : w === 'nekdy' ? '<span class="rt-later">?/! odloženo do „někdy“</span>'
+    : w === 'quick' ? '<span class="rt-quick">⚡ patnáctiminutovka</span>'
+    : w === 'unquick' ? '<span class="rt-ok">vráceno mezi úkoly</span>'
+    : w === 'plan' ? '<span class="rt-ok">📅 naplánováno na ' + fmtDate(what.plan) + '</span>'
+    : '<span class="rt-no">' + (mode==='T' ? 'zamítnuto' : 'zrušeno') + '</span>';
   return tag + '<button class="undo" onclick="undoAct(\''+id+'\',\''+mode+'\')">zpět</button>';
 }
-async function act(id, status, mode, silent) {
+/* what = cílový stav ('schvaleny' | 'hotovo' | 'zamitnuty' | 'nekdy') nebo 'quick' / 'unquick' nebo {plan:'YYYY-MM-DD'} */
+async function act(id, what, mode, silent) {
   const el = document.getElementById(mode+'t-'+id);
-  const t = findTask(id);
+  const t = findTask(id); if (!t) return;
+  let payload;
+  if (what && what.plan !== undefined) { if (!what.plan || what.plan < todayISO()) return; /* při psaní z klávesnice chodí i nedopsaný rok */ payload = { due_date: what.plan }; }
+  else if (what === 'quick') payload = { quick: true, status: U_OPEN.includes(t.status) ? t.status : 'schvaleny' };
+  else if (what === 'unquick') payload = { quick: false, duration_min: 30 };
+  else payload = { status: what };
   try {
-    const res = await call({ action:'update', id, status });
+    const res = await ucall({ action:'update', id, ...payload });
     if (res.error) throw new Error(res.error);
-    if (t) { if (!t._acted) t._prevStatus = t.status; t._acted = status; t.status = status; }
+    if (!t._prev) t._prev = { status: t.status, due_date: t.due_date || null, due_time: t.due_time || null, quick: !!t.quick, duration_min: t.duration_min || 30 };
+    if (res.task) Object.assign(t, res.task);
+    t._acted = what;
     el.classList.add('done');
-    document.getElementById(mode+'res-'+id).innerHTML = resultTag(status, id, mode);
-    el.dataset.prev = (t && t._prevStatus) || 'schvaleny';
-    if (mode==='T') updateCount();
-    if (!silent) toast(status === 'schvaleny' ? '✓ Schváleno' : status === 'hotovo' ? '✓✓ Hotovo' : '✗ Zamítnuto');
+    document.getElementById(mode+'res-'+id).innerHTML = resultTag(what, id, mode);
+    if (mode==='T') updateCount(); else { renderUFilters(); document.getElementById('cntO').textContent = document.querySelectorAll('#ublocks .task:not(.done)').length; }
+    if (!silent) toast(what === 'schvaleny' ? (mode==='T' ? '✓ Schváleno' : '↩ Vráceno mezi úkoly') : what === 'hotovo' ? '✓✓ Hotovo' : what === 'nekdy' ? '?/! Odloženo do „někdy“' : what === 'quick' ? '⚡ Patnáctiminutovka' : what === 'unquick' ? '↩ Vráceno mezi úkoly' : (what && what.plan) ? '📅 Naplánováno na ' + fmtDate(what.plan) : (mode==='T' ? '✗ Zamítnuto' : '✗ Zrušeno'));
   } catch(e) { toast('Chyba: ' + e.message); }
 }
 async function undoAct(id, mode) {
-  const t = findTask(id);
-  const prev = mode==='T' ? 'navrzeny' : ((t && t._prevStatus) || document.getElementById(mode+'t-'+id).dataset.prev || 'schvaleny');
+  const t = findTask(id); if (!t || !t._prev) return;
   try {
-    const res = await call({ action:'update', id, status: prev });
+    const res = await ucall({ action:'update', id, ...t._prev });
     if (res.error) throw new Error(res.error);
-    if (t) { t.status = prev; delete t._acted; delete t._prevStatus; }
+    if (res.task) Object.assign(t, res.task);
+    delete t._acted; delete t._prev;
     const el = document.getElementById(mode+'t-'+id);
     el.classList.remove('done');
     document.getElementById(mode+'res-'+id).innerHTML = '';
-    if (mode==='T') updateCount();
+    const pd = el.querySelector('.plan-date'); if (pd) pd.value = '';
+    if (mode==='T') updateCount(); else { renderUFilters(); document.getElementById('cntO').textContent = document.querySelectorAll('#ublocks .task:not(.done)').length; }
     toast('Vráceno');
   } catch(e) { toast('Chyba: ' + e.message); }
 }
@@ -994,7 +1060,7 @@ async function saveEdit(id, mode) {
   const duration_min = parseInt(document.getElementById(mode+'em-'+id).value) || 30;
   if (!title) { toast('Název nesmí být prázdný'); return; }
   try {
-    const res = await call({ action:'update', id, status: t.status, title, owner, due_date, due_time, duration_min });
+    const res = await ucall({ action:'update', id, title, owner, due_date, due_time, duration_min });
     if (res.error) throw new Error(res.error);
     t.title = title; t.owner = owner; t.due_date = due_date; t.due_time = due_time; t.duration_min = duration_min;
     renderT(); renderU(); toast('✎ Uloženo');
