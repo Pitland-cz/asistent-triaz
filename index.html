@@ -1210,11 +1210,14 @@ function renderM() {
   document.getElementById('cntMA').textContent = need;
   const runs = MDATA.runs || [];
   document.getElementById('mrun').textContent = runs.length ? 'poslední běh ' + mFmt(runs[0].finished_at || runs[0].started_at) : 'zatím žádný běh';
-  let h = mInfoHtml(MDATA.info || []);
+  const INF = MDATA.info || [];
+  let h = '';   // pořadí: nevyřízené nahoře (odpovědi, nejisté, nepřečtené Pro info, čeká, log), vyřízené dole
   if (act.length) h += `<div class="m-sec">✍️ K odpovědi / delegaci <span>${act.length}</span></div>` + act.map(mCard).join('');
   if (nej.length) h += `<div class="m-sec">❓ Nejisté — potřebuju tvoje slovo <span>${nej.length}</span></div>` + nej.map(mCard).join('');
+  h += mInfoHtml(INF.filter(b => !b.read_at));
   if (wait.length) h += `<div class="m-sec">⏳ Čeká na provedení v Gmailu (do 15 min) <span>${wait.length}</span></div>` + wait.map(mWait).join('');
   h += mLogHtml(logs);
+  h += mInfoHtml(INF.filter(b => b.read_at));
   if (done.length) h += `<div class="m-sec m-click" onclick="MDONE=!MDONE;renderM()">✅ Vyřízeno za 3 dny <span>${done.length}</span> ${MDONE?'▾':'▸'}</div>` + (MDONE ? done.map(mWait).join('') : '');
   document.getElementById('mblocks').innerHTML = h;
   document.getElementById('emptyM').style.display = (items.length || logs.length || (MDATA.info||[]).length) ? 'none' : 'block';
@@ -1223,7 +1226,7 @@ function mDM(d){ if(!d) return ''; const p=d.split('-'); return (+p[2])+'. '+(+p
 function mInfoHtml(blocks) {
   if (!blocks.length) return '';
   const open = blocks.filter(b => !b.read_at), read = blocks.filter(b => b.read_at);
-  let h = `<div class="m-sec">ℹ️ Pro info <span>${open.length}</span></div>`;
+  let h = open.length ? `<div class="m-sec">ℹ️ Pro info <span>${open.length}</span></div>` : `<div class="m-sec">ℹ️ Pro info – přečtené <span>${read.length}</span></div>`;
   for (const b of [...open, ...read]) {
     const ico = b.kind === 'doklady' ? '🧾' : (b.kind === 'notifikace' ? '🔔' : 'ℹ️');
     const per = b.period_from ? (b.period_from === b.period_to ? mDM(b.period_from) : mDM(b.period_from) + ' – ' + mDM(b.period_to)) : '';
